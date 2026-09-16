@@ -100,7 +100,8 @@ def test_every_flagged_member_has_a_sentence_and_a_badge(story):
     assert {record["member_id"] for record in story["attribution"]} == flagged
     for record in story["attribution"]:
         assert record["sentence"].startswith(record["name"])
-        assert record["badge_text"].startswith("stable in ")
+        assert record["badge_text"].startswith("flagged in ")
+        assert "same cause in" in record["badge_text"]
         assert record["stability"]["n_runs"] == story["config"]["stability"]["n_runs"]
 
 

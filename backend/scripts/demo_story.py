@@ -122,22 +122,29 @@ def week_by_week(story):
 
 def attribution(story):
     heading(4, "Attribution: why is each of them flagged")
-    line("One sentence per flagged member, and how often the label survived 50 reruns with")
-    line("every perturbable parameter moved by up to 30% and fresh dice each time.")
+    line("One sentence per flagged member, then two numbers from 50 reruns with every")
+    line("perturbable parameter moved by up to 30% and fresh dice each time. How often she")
+    line("was in trouble at all, and how often we named the same cause when she was.")
     line()
     for record in story["attribution"]:
         line(record["sentence"], indent=4)
         line(f"{record['badge_text']}.", indent=8)
         stability = record["stability"]
-        if stability["not_flagged"] > stability["matched"]:
+        agreement = stability["source_agreement"]
+        if agreement is None:
+            line("She never flagged in any rerun, so there was no cause to agree about.", indent=8)
+        elif stability["flagged_runs"] < stability["n_runs"] / 2:
+            # The distinction the two part badge exists to make: a marginal case is not a
+            # shaky explanation, and saying so out loud is the point.
             line(
-                f"In {stability['not_flagged']} of the reruns she never flagged at all, so "
-                f"the case itself is marginal.",
+                f"A marginal case: only {stability['flagged_runs']} reruns put her over the "
+                f"line at all. When they did, we named the same cause "
+                f"{round(100 * agreement)}% of the time.",
                 indent=8,
             )
         elif stability["differed"]:
             line(
-                f"{stability['differed']} reruns flagged her but named a different cause.",
+                f"{stability['differed']} of those reruns named a different cause.",
                 indent=8,
             )
         line()

@@ -3,14 +3,18 @@
 Every number in `params.py` is either a regulation or a judgement call. The judgement calls
 could reasonably have been 30% different. So before a label goes on screen we rerun the whole
 attribution 50 times, each time with every perturbable parameter multiplied by U(0.7, 1.3)
-AND a fresh dice roll, and report how often the same answer comes back:
+AND a fresh dice roll, and report what came back:
 
-    "stable in 46 of 50 runs"
+    "flagged in 23 of 50 reruns; same cause in 22 of those"
 
-That sentence is the most honest thing in the prototype. A label that survives 46 reruns is
-a finding. A label that survives 20 is a coin flip we should not be showing an officer, and
-the badge says so in the same words either way, which is the point: the number is reported
-whether it flatters us or not.
+Two numbers, because they answer two different questions and one number confused them. The
+first says how marginal the CASE is: how often this member was in trouble at all once the
+settings moved. The second says how robust the ATTRIBUTION is: given that she was in trouble,
+how often we named the same cause. A member can be hard to call and easy to explain, which is
+exactly what the demo turns out to contain, and a single figure reported that as failure.
+
+The sentence is the most honest thing in the prototype, and it is reported whether it flatters
+us or not.
 
 WHAT IS PERTURBED, AND WHAT IS NOT
 ----------------------------------
@@ -96,15 +100,27 @@ def stability(
 
     Each entry:
       member_id, base_label, base_source_id
-      matched      reruns that produced the same answer
-      differed     reruns that flagged her but gave a different answer
-      not_flagged  reruns where she never flagged at all
-      n_runs       so the three counts can be read as a partition of it
-      badge_text   "stable in {matched} of {n_runs} runs"
+      matched           reruns that produced the same answer
+      differed          reruns that flagged her but gave a different answer
+      not_flagged       reruns where she never flagged at all
+      flagged_runs      matched + differed: the reruns where there was a case to label
+      source_agreement  matched / flagged_runs, or None when she never flagged
+      n_runs            so the three counts can be read as a partition of it
+      badge_text        "flagged in {flagged_runs} of {n_runs} reruns; same cause in
+                        {matched} of those"
 
     `differed` and `not_flagged` are kept apart on purpose. "We would have called her
     something else" and "she would not have been on the list" are different admissions, and
     collapsing them into one failure count would hide which one is happening.
+
+    THE BADGE IS TWO NUMBERS BECAUSE ONE NUMBER LIED
+    ------------------------------------------------
+    A single "stable in 22 of 50 runs" reads as "the attribution is a coin flip". On the demo
+    it is nothing of the kind: the transmitted peers score 11 to 22, but `differed` is 0 or 1
+    in every case. Almost every miss is `not_flagged`. So the two honest facts are how often
+    there was a case at all, and how often we named the same cause when there was, and the
+    badge now says both. It reports a marginal CASE as a marginal case, and it stops a robust
+    attribution being punished for sitting near the threshold.
     """
     base = [
         {
@@ -149,6 +165,16 @@ def stability(
                 entry["differed"] += 1
 
     for entry in base:
+        flagged_runs = entry["matched"] + entry["differed"]
+        entry["flagged_runs"] = flagged_runs
+        # None, not 0.0, when she never flagged: there were no cases to agree about, and a
+        # zero would read as "we never named the right cause" instead of "never asked".
+        entry["source_agreement"] = (
+            entry["matched"] / flagged_runs if flagged_runs else None
+        )
         # No hyphens and no dashes: this string is rendered on screen in the judged video.
-        entry["badge_text"] = f"stable in {entry['matched']} of {n_runs} runs"
+        entry["badge_text"] = (
+            f"flagged in {flagged_runs} of {n_runs} reruns; "
+            f"same cause in {entry['matched']} of those"
+        )
     return base

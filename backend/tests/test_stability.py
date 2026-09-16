@@ -69,7 +69,11 @@ def test_a_trivially_robust_index_case_scores_every_run(robust_case):
     assert entry["matched"] == 50
     assert entry["differed"] == 0
     assert entry["not_flagged"] == 0
-    assert entry["badge_text"] == "stable in 50 of 50 runs"
+    assert entry["flagged_runs"] == 50
+    assert entry["source_agreement"] == 1.0
+    assert entry["badge_text"] == (
+        "flagged in 50 of 50 reruns; same cause in 50 of those"
+    )
 
 
 def test_the_three_counts_partition_the_runs(robust_case):
@@ -81,11 +85,61 @@ def test_the_three_counts_partition_the_runs(robust_case):
         assert entry["n_runs"] == 8
 
 
+def test_the_badge_separates_a_marginal_case_from_a_shaky_explanation(robust_case):
+    """The reason the badge is two numbers.
+
+    A member can be hard to CALL and easy to EXPLAIN: she sits near the threshold, so a
+    perturbed rerun often leaves her green, but on the reruns where she does flag we name the
+    same cause every time. A single figure scored that as failure. `flagged_runs` is the first
+    fact and `source_agreement` is the second, and it is computed over the reruns that had a
+    case rather than over all of them.
+    """
+    scenario, shocks, records = robust_case
+    for entry in stability(scenario, shocks, (), DEFAULT, records, seed=SEED, n_runs=12):
+        assert entry["flagged_runs"] == entry["matched"] + entry["differed"]
+        if entry["flagged_runs"] == 0:
+            assert entry["source_agreement"] is None
+            assert entry["not_flagged"] == 12
+        else:
+            assert entry["source_agreement"] == pytest.approx(
+                entry["matched"] / entry["flagged_runs"]
+            )
+            assert 0.0 <= entry["source_agreement"] <= 1.0
+
+
+def test_the_demo_transmitted_cases_are_marginal_but_well_explained():
+    """The finding that forced the two part badge, asserted on the real demo scenario.
+
+    The transmitted peers in k2 flag in well under half the reruns, so the CASE is marginal.
+    But when a rerun does flag one of them, it almost always names the same source. A single
+    number reported that as "the attribution is a coin flip", which was simply not what the
+    reruns said.
+    """
+    from sim.generator import generate_scenario
+
+    scenario = generate_scenario()
+    draws = make_draws(scenario.n_members, DEFAULT, seed=1)
+    shocks = [Shock(type="health", start_week=2, member_id="m010")]
+    records = attribute(scenario, shocks, draws, DEFAULT)
+
+    entries = stability(scenario, shocks, (), DEFAULT, records, seed=1, n_runs=50)
+    transmitted = [e for e in entries if e["base_label"] == TRANSMITTED]
+    assert transmitted
+
+    assert any(e["flagged_runs"] < 25 for e in transmitted), "no marginal case left to show"
+    for entry in transmitted:
+        if entry["flagged_runs"]:
+            assert entry["source_agreement"] >= 0.8, entry
+
+
 def test_the_badge_text_carries_no_hyphens_or_dashes(robust_case):
     """It is rendered on screen in the judged video."""
     scenario, shocks, records = robust_case
     for entry in stability(scenario, shocks, (), DEFAULT, records, seed=SEED, n_runs=5):
-        assert entry["badge_text"] == f"stable in {entry['matched']} of 5 runs"
+        assert entry["badge_text"] == (
+            f"flagged in {entry['flagged_runs']} of 5 reruns; "
+            f"same cause in {entry['matched']} of those"
+        )
         for char in ("-", "–", "—"):
             assert char not in entry["badge_text"]
 
@@ -101,7 +155,7 @@ def test_one_entry_per_base_record_in_the_same_order(robust_case):
         assert entry["base_source_id"] == record["source_id"]
         assert set(entry) == {
             "member_id", "base_label", "base_source_id", "matched", "differed",
-            "not_flagged", "n_runs", "badge_text",
+            "not_flagged", "flagged_runs", "source_agreement", "n_runs", "badge_text",
         }
 
 
@@ -112,7 +166,7 @@ def test_a_small_number_of_runs_works(robust_case):
     three = stability(scenario, shocks, (), DEFAULT, base, seed=SEED, n_runs=3)
     assert three[0]["matched"] == 3
     assert three[0]["n_runs"] == 3
-    assert three[0]["badge_text"] == "stable in 3 of 3 runs"
+    assert three[0]["badge_text"] == "flagged in 3 of 3 reruns; same cause in 3 of those"
     # And the first three runs of a 50 run check are the same three runs.
     fifty = stability(scenario, shocks, (), DEFAULT, base, seed=SEED, n_runs=50)
     assert fifty[0]["matched"] >= three[0]["matched"]
