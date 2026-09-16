@@ -1,0 +1,29 @@
+{
+  "name": "Ranchi branch, one quarter",
+  "note": "The seeded demo scenario. Every number the story prints comes from running this; nothing here is an output.",
+
+  "generator": {
+    "seed": 42,
+    "n_kendras": 5,
+    "members_per_kendra": 5
+  },
+
+  "draws_seed": 1,
+
+  "shocks": [
+    {
+      "type": "health",
+      "member_id": "m010",
+      "start_week": 2,
+      "why": "m010 sits in k2, the kendra with the highest R potential, so the shock lands where the network says it would spread furthest. Severity and duration are the params.py defaults for a health shock."
+    }
+  ],
+
+  "decision_week": 3,
+  "decision_week_why": "The officer sees the first amber at the week 2 meeting and can act by week 3. Acting in week 1 would be clairvoyant, and a fix from week 9 or later could not be judged inside the horizon.",
+
+  "stability": {
+    "seed": 1,
+    "n_runs": 50
+  }
+}

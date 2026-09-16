@@ -12,7 +12,11 @@ Running note of where the build is. Update at the end of every phase.
 - **Phase 2 part 1** `attribution.py` + `tests/test_attribution.py`.
 - **Phase 2 part 2** `r_number.py` + `tests/test_r_number.py`. Phase 2 is done.
 - **Phase 3 part 1** `interventions.py` + `smallest_fix.py` (moratorium and reschedule),
-  the engine now applies interventions, R live rescoped to the kendra. 110 tests pass.
+  the engine now applies interventions, R live rescoped to the kendra.
+- **Phase 3 part 2** `stability.py`: 50 perturbed reruns, "stable in k of 50 runs".
+- **Phase 3 part 3 THE GATE IS PASSED.** `data/demo_scenario.json`, `backend/demo/story.py`
+  and `backend/scripts/demo_story.py`. The script tells the whole story in the terminal in
+  3.3 seconds, so the prototype exists. 140 tests pass.
 
 ## Phase 2 part 1: what attribution does now
 
@@ -156,41 +160,106 @@ r_live_by_week, cross_kendra_reach_by_week}`.
   `interventions` argument that is held FIXED across every counterfactual, so the labels
   still answer "what caused this", not "what would the fix have done".
 
-## Tomorrow: scenario tuning for the demo
+## Phase 3 part 2: what the stability badge counts
 
-**Plant the demo shock in the kendra with the highest R potential.** On `generate_scenario()`
-with draws seed 1 that is k2 or k4, both at 1.2 (k0 and k1 are 0.2, k3 is 1.0). The opening
-frame is then "all green, R potential 1.2": a kendra where nothing has happened yet and the
-only number on screen is the one saying how much could.
+`stability(scenario, shocks, interventions, params, base_records, seed, n_runs=50)` returns one
+entry per base record, in the same order, so the UI can zip badges onto cards it already has:
+`{member_id, base_label, base_source_id, matched, differed, not_flagged, n_runs, badge_text}`.
 
-Observed today with a health shock on m010 (Mamta Kisku, k2) in week 2 and
-`decision_week=3`, so these are a starting point to tune from, not values to hardcode:
+- Run k perturbs every `params.PERTURBABLE` field by its own U(0.7, 1.3) AND rolls fresh
+  dice. Varying only the settings would answer "robust to our choices", only the dice
+  "robust to luck"; an officer is exposed to both at once. Inside run k, the actual world and
+  every counterfactual share that one draws array.
+- Run k draws with `seed + k + 1`, so the base run's own dice never reappear. A rerun that
+  replayed the base world would score itself a free match and inflate every badge.
+- A match is the same label, and for TRANSMITTED the same `source_id` too. The sentence on
+  screen names a neighbour, and naming a different one has not reproduced anything.
+- `differed` and `not_flagged` are counted apart on purpose: "we would have called her
+  something else" and "she would not have been on the list" are different admissions.
+- One attribution per run, not one per member. `attribute` already labels every flagged
+  member off a shared cache of worlds.
+- `amber` and `red` are perturbed independently, so a run can have red below amber. Only
+  `amber` decides flagging, so no count depends on the pair staying ordered.
 
-- flagged: m010, m011, m012, m014 in k2, plus the baseline k0 pair m002 and m004
-- Rs 4,20,707 at risk
-- smallest fix: cut Mamta Kisku's installment by 50% from week 3. Protects 3 members, costs
-  the lender Rs 130, avoids Rs 2,73,172 at risk
+## Phase 3 part 3: the gate, and what it actually prints
 
-Two things to check while tuning: that the k0 baseline pair does not distract from the k2
-story (it may be better to show k2 alone first), and whether a cross kendra case can be
-provoked, because `cross_kendra_reach_by_week` is currently 0 everywhere and the shared
-lender channel is the part a single lender cannot see for itself.
+`data/demo_scenario.json` holds INPUTS only (generator seed 42, draws seed 1, health shock on
+m010 in week 2, decision week 3, stability seed 1, 50 runs). A test asserts no result word
+appears in it, so the demo can never assert its own conclusion.
+
+`backend/demo/story.py` -> `build_story()` returns one plain dict with everything: roster,
+layout, edges, weekly states, a timeline of status changes and transfers, labelled and badged
+attribution with sentences, both R series per kendra, the three ranked fixes with replays, and
+the applied top fix. It is deterministic and JSON serialisable, which is what lets Phase 5
+serve the same dict and Phase 6 draw it. `_plain()` coerces numpy scalars on the way out;
+`json.dumps` refuses them and the engine produces them everywhere.
+
+`backend/scripts/demo_story.py` only arranges that dict, so the terminal and the UI can never
+tell two different stories. It prints its own runtime.
+
+The story, as it runs today:
+
+1. All 25 members green. R potential k0 0.20, k1 0.20, k2 1.20, k3 1.00, k4 1.20.
+2. Mamta Kisku (m010, k2) loses 65% of her income for 4 weeks from week 2.
+3. Week 4 she goes red and two peers go amber covering her at the meeting. Week 5 a third
+   peer goes amber and a lender freezes top ups for 8 members in OTHER kendras.
+4. Six flagged: one INDEX (50 of 50 runs), four TRANSMITTED, one INDEPENDENT (36 of 50).
+5. R live in k2: R potential 1.20 through week 3, then live 2.00, then 3.00 from week 5.
+6. Smallest fix: cut Mamta's installment by 50% from week 3. Protects 3 members, costs the
+   lender Rs 130, Rs 2,73,172 of loans moved out of stress, R live 3.00 becomes 0.00. The
+   index case stays flagged, which is the honest shape: a lender cannot undo an illness.
+7. Anita Kisku in k0 is INDEPENDENT and her stress still reached Savita Bai in week 12.
+
+## Two things the gate revealed, both worth handling before the video
+
+**The transmitted badges are low, and the reason is not what it looks like.** m011 scores 22
+of 50, m012 and m014 around 11. But `differed` is 0 or 1 in every case: the failures are
+almost entirely `not_flagged`. When a rerun flags her at all, we name the right source. So the
+honest reading is "the CASE is marginal under 30% parameter noise", not "the attribution is a
+coin flip", and the script already says that in words under the badge. Options, in preference
+order: say it out loud in the video (it is a strength, not a weakness, and no competitor will
+have a number like it); or add a second figure to the badge, "22 of 50 reruns flagged her, and
+21 of those 22 named Mamta"; or raise the shock severity so the transmitted cases sit further
+from the threshold. Do NOT quietly narrow the perturbation range to make the number look good.
+
+**The shared lender channel fires but never flags anybody.** Yesterday's note said
+`cross_kendra_reach_by_week` is 0 everywhere; it still is, but now we know why. Week 5 really
+does freeze top ups for 8 members across other kendras and takes Rs 10,255 of their savings,
+it just never pushes one of them over amber. To get a genuine cross kendra case, lower
+`lender_pause_threshold` or thin the buffers of the members sharing m010's lender. Worth one
+attempt, because it is the part a single lender cannot see for itself.
+
+## Scenario tuning notes
+
+Done, and pinned in `data/demo_scenario.json`: the shock is planted on m010 in k2, which ties
+with k4 for the highest R potential at 1.2. The opening frame is "all green, R potential 1.20".
+A test asserts the shock lands in a kendra holding the maximum, so retuning the scenario cannot
+silently break that claim.
+
+Still open: the k0 pair (m002 INDEPENDENT, m004 TRANSMITTED) flags in weeks 11 and 12, late
+enough that it does not compete with the k2 story and in fact gives section 7 its case. Leave
+it. If the video runs long, the k0 pair is the part to cut.
 
 ## Next
 
-- **Phase 3 part 2**: `stability.py`. 50 runs, each with a new seed and every
-  `params.PERTURBABLE` field multiplied by U(0.7, 1.3); within a run, actual and
-  counterfactual share draws. Report "stable in k of 50 runs" for the label and, for
-  TRANSMITTED, the source too.
-- Then `scripts/demo_story.py`, which prints the whole story in the terminal. THAT IS THE
-  GATE: if it tells the story, the prototype exists.
-- Deferred on purpose, pick up only if there is time: `scheme_linkage`, and a manual
-  intervention sandbox.
+- **Phase 4**: `validation/cause_recovery.py` and `validation/reality_check.py`, plus
+  `scripts/run_validation.py` writing `data/validation_report.json`. ~500 random scenarios,
+  1 to 3 planted shocks. Ground truth is the attribution procedure run with TRUE params and
+  TRUE draws; the engine under test gets perturbed params, noisy incomes and a DIFFERENT seed.
+  Report agreement per class, a confusion matrix and listed failure cases. `stability.py`
+  already has the perturbation machinery (`perturbed_params`), so reuse it rather than writing
+  a second copy.
+- Then **Phase 5**: `app.py` routes plus `scripts/export_snapshot.py`. Note `build_story()`
+  already returns exactly what `GET /scenario/demo` and the snapshot need, so Phase 5 is
+  mostly plumbing.
+- Deferred on purpose, pick up only if there is time: `scheme_linkage`, a manual intervention
+  sandbox, and the second figure on the stability badge described above.
 
 ## Handy while working
 
 ```
 cd backend && .venv/Scripts/python.exe -m pytest
+cd backend && .venv/Scripts/python.exe scripts/demo_story.py
 ```
 
 Demo baseline that exercises the trend as a cause: `generate_scenario()` with
