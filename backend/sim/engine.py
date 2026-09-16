@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from sim.interventions import due_multiplier
 from sim.params import (
     CH_COVER,
     CH_COVER_SIZE,
@@ -175,10 +176,12 @@ def simulate(scenario, shocks, interventions, params, draws) -> Run:
     per member. A single member loop would let member 3's outcome depend on whether member
     7 had already been processed this week, which is the kind of order sensitivity that
     silently diverges between the actual and counterfactual runs.
-    """
-    if interventions:
-        raise NotImplementedError("Interventions are Phase 3; pass an empty list for now.")
 
+    `interventions` reach exactly one quantity, `due`. Everything downstream (the gap she
+    brings to the meeting, who covers her, her stress, the arrears her lender sees) follows
+    from that one number, so a supportive action cannot accidentally hand anybody income or
+    savings the lender never actually gave them.
+    """
     if draws.shape != (scenario.n_members, params.horizon_weeks + 1, N_CHANNELS):
         raise ValueError(
             f"draws shape {draws.shape} does not match this scenario and horizon. "
@@ -268,7 +271,9 @@ def simulate(scenario, shocks, interventions, params, draws) -> Run:
             buffer[m.id] -= consumption_draw
 
             net = max(income - expenses, 0.0)
-            due = m.weekly_due
+            # The ONLY thing an intervention touches. A moratorium makes this 0, a
+            # reschedule shrinks it; nothing else in the engine knows interventions exist.
+            due = m.weekly_due * due_multiplier(interventions, m.id, week)
             # Savings are drawn only for the gap that is actually there: she does not
             # liquidate a cushion she has no use for this week.
             buffer_draw = min(buffer[m.id] * params.buffer_draw_cap, max(due - net, 0.0))

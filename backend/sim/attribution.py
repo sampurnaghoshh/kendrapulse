@@ -106,10 +106,14 @@ class _Worlds:
     25 member scenario would replay the same handful of worlds hundreds of times.
     """
 
-    def __init__(self, scenario, shocks, draws, params=DEFAULT):
+    def __init__(self, scenario, shocks, draws, params=DEFAULT, interventions=()):
         self.scenario = scenario
         self.params = params
         self.draws = draws
+        # Interventions are held FIXED across every world in here. The question an
+        # intervened attribution answers is "given this fix, who is still stressed and
+        # why", so the fix belongs to the stage, exactly like a positive income trend.
+        self.interventions = tuple(interventions)
         self.shocks = expand_shocks(scenario, shocks)
         self.shock_owners, self.trend_owners = cause_owners(scenario, self.shocks)
         self._runs = {}
@@ -136,7 +140,7 @@ class _Worlds:
             self._runs[key] = simulate(
                 self._scenario_with(trends_kept),
                 [s for s in self.shocks if s.member_id in shocks_kept],
-                [],
+                self.interventions,
                 self.params,
                 self.draws,  # THE same array in every world. Never rebuild it.
             )
@@ -398,15 +402,20 @@ def attribute_member(worlds, member_id, as_of_week=None):
     return record
 
 
-def attribute(scenario, shocks, draws, params=DEFAULT, as_of_week=None):
+def attribute(scenario, shocks, draws, params=DEFAULT, as_of_week=None, interventions=()):
     """Label every member flagged in the actual run up to `as_of_week`.
 
     One record per flagged member, earliest flag first:
     {member_id, label, source_id, source_cause, sole_source, path, first_flag_week,
      tags, contributors}.
+
+    `interventions` labels an INTERVENED world instead of the raw one, which is how
+    `smallest_fix` reports the R live a fix would leave behind. It is held fixed in every
+    counterfactual, so the labels still answer "what caused this", never "what would the
+    fix have done".
     """
     as_of_week = params.horizon_weeks if as_of_week is None else as_of_week
-    worlds = _Worlds(scenario, shocks, draws, params)
+    worlds = _Worlds(scenario, shocks, draws, params, interventions)
     actual = worlds.actual()
 
     flagged = [m.id for m in scenario.members if actual.flagged(m.id, as_of_week)]

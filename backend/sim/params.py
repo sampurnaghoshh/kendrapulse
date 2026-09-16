@@ -135,12 +135,31 @@ class Params:
     # H. Declared now, consumed in Phase 3. They live here so params.py stays the single
     #    home for tunables and Phase 3 does not have to invent a second one.
     # ----------------------------------------------------------------------------------
+    # Lender cost of an intervention. Deferring or reducing an installment does not
+    # destroy the money, it delays it, and the only thing the lender actually loses is the
+    # use of that rupee until the horizon ends. So every intervention is priced the same
+    # way: RUPEE MOVED x carry_cost_rate x WEEKS IT IS LATE BY. A moratorium prices each
+    # deferred installment from the week it was due to the end of the horizon; a
+    # reschedule prices each week's reduction the same way. Nothing is charged for the
+    # deferred principal itself, because the borrower still owes it.
     carry_cost_rate: float = 0.0035  # REASON: weekly cost to the lender of deferred
     # principal, roughly an 18% annual cost of funds
     scheme_delay_weeks: int = 3  # REASON: a government scheme linkage does not pay out
     # the week you apply. Without this delay it would dominate the smallest fix ranking
     # for free, which would be a dishonest demo.
-    r_window_weeks: int = 4  # REASON: weeks to look ahead when counting onward flags
+    r_window_weeks: int = 4  # REASON: weeks to look ahead when counting onward flags.
+    # Also the OBSERVATION WINDOW an intervention must leave behind it: a fix that is
+    # still running when the horizon ends has not been shown to work, it has only pushed
+    # the stress past the edge of the chart.
+
+    # The smallest fix search grid. Small on purpose: these are the options a branch
+    # manager can actually authorise at a kendra meeting, and a coarse grid keeps the
+    # ranking explainable ("two weeks or four") instead of returning an odd number nobody
+    # can justify to a borrower.
+    moratorium_weeks_grid: tuple[int, ...] = (2, 4)  # REASON: one or two fortnightly
+    # collection cycles, the usual field level forbearance
+    reschedule_fraction_grid: tuple[float, ...] = (0.5, 0.75)  # REASON: halve the
+    # installment, or shave a quarter off it
 
     # ----------------------------------------------------------------------------------
     # I. Generator shape. Not physics, but tunable, so it belongs here.

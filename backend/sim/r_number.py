@@ -4,9 +4,11 @@ Two numbers, because a field officer needs an answer in both of the situations s
 actually in.
 
 R LIVE answers "what is already happening in this kendra". It is a ratio of counted cases:
-onward (TRANSMITTED) flags divided by the primary cases that started them. It is only
-defined once there is at least one primary case, which is exactly the situation where the
-officer can already see somebody in trouble.
+onward (TRANSMITTED) flags inside the kendra divided by the primary cases that started them.
+It is only defined once there is at least one primary case, which is exactly the situation
+where the officer can already see somebody in trouble. Stress that crossed into a different
+kendra is counted separately by CROSS KENDRA REACH, so that the two numbers the UI puts
+under one cluster, R live and R potential, are on one scale: peers of this kendra.
 
 R POTENTIAL answers "what would happen if somebody here got sick". It is a stress test, so
 it is defined even when every member is green, which is when it is most useful: it is the
@@ -55,28 +57,35 @@ def _is_primary(record):
 # ---------------------------------------------------------------------------------------
 
 
-def r_live_by_week(scenario, records, params=DEFAULT):
-    """kendra_id -> [R live at week 1, ..., R live at week horizon].
+def _onward_by_week(scenario, records, params, inside):
+    """Onward cases per primary case, week by week, for one kendra at a time.
 
-    An entry is None when that kendra has no primary case flagged yet. R is a ratio, and
-    there is no honest value to report with nothing in the denominator, so the UI falls
-    back to R potential for those weeks rather than printing a zero it cannot justify.
+    `inside` picks which onward cases are counted: those that landed among the source's own
+    kendra peers (R live), or those that landed in OTHER kendras (cross kendra reach).
 
-    A kendra owns an onward case through its SOURCE, not through where the onward case
-    lives. Transmission across kendras (a lender freezing top ups for members of another
-    group) is the whole point of the shared lender channel, and the kendra that should
-    carry that number is the one the stress came from.
+    Shared rules, whichever set we are counting:
+
+    A kendra owns an onward case through its SOURCE, never through where the onward case
+    lives. The kendra that should carry a number is the one the stress came from.
 
     An onward case only counts once its source is a counted case too. Without that
     condition a transmitted member flagged in week 3 whose source does not flag until week
     5 would be an onward case in a week with nothing to divide by.
+
+    The entry is None when the kendra has no primary case flagged yet. A ratio with nothing
+    in the denominator has no honest value, so the UI falls back to R potential for those
+    weeks rather than printing a zero it cannot justify.
     """
     kendra_of = {m.id: m.kendra_id for m in scenario.members}
     primary = {r["member_id"]: r for r in records if _is_primary(r)}
     # A TRANSMITTED record can name a source who never flags herself, or no source at all.
     # Neither is a case, so neither can be the start of a chain we count.
     transmitted = [
-        r for r in records if r["label"] == TRANSMITTED and r["source_id"] in primary
+        r
+        for r in records
+        if r["label"] == TRANSMITTED
+        and r["source_id"] in primary
+        and (kendra_of[r["member_id"]] == kendra_of[r["source_id"]]) == inside
     ]
 
     out = {}
@@ -103,6 +112,40 @@ def r_live_by_week(scenario, records, params=DEFAULT):
     return out
 
 
+def r_live_by_week(scenario, records, params=DEFAULT):
+    """kendra_id -> [R live at week 1, ..., R live at week horizon].
+
+    Onward cases INSIDE the source's own kendra, divided by that kendra's primary cases.
+
+    Restricting the numerator to the kendra is what puts R live on the same scale as
+    R potential, which counts kendra peers for the same reason: the UI shows one number per
+    cluster and swaps between the two as soon as a case appears. If R live counted onward
+    cases anywhere in the branch while R potential counted only peers, the number under a
+    kendra would silently change meaning the moment somebody flagged, and the bound that
+    lets the ring be drawn as a fraction would hold for only one of the two.
+
+    Stress that crosses into another kendra is not thrown away. It is reported separately
+    by `cross_kendra_reach_by_week`, which is the honest place for it: a different scale
+    deserves a different number, not a quietly inflated one.
+    """
+    return _onward_by_week(scenario, records, params, inside=True)
+
+
+def cross_kendra_reach_by_week(scenario, records, params=DEFAULT):
+    """kendra_id -> [reach at week 1, ..., reach at week horizon].
+
+    Onward cases in OTHER kendras charged to this kendra's primary cases, per primary case.
+    Same denominator as R live, so the two read as a pair: "each case here has pulled down
+    0.5 of her own group and 0.3 of somebody else's".
+
+    This is the number that makes the shared lender channel visible. Guarantee cover cannot
+    leave a kendra, so anything counted here arrived through a lender freezing top ups for
+    linked members in another group, which is the contagion path a single lender looking at
+    its own portfolio cannot see at all.
+    """
+    return _onward_by_week(scenario, records, params, inside=False)
+
+
 # ---------------------------------------------------------------------------------------
 # R potential
 # ---------------------------------------------------------------------------------------
@@ -126,9 +169,9 @@ def r_potential(scenario, draws, params=DEFAULT):
 
     PEERS inside the kendra, not the whole branch. The number is read off one cluster in
     the UI as "how many of her four neighbours go down with her", so it is bounded by
-    members_per_kendra - 1 and can be drawn as a fraction of that ring. Onward cases that
-    land in other kendras are real and R live does count them; R potential deliberately
-    reports the tighter group level number rather than mixing two scales in one figure.
+    members_per_kendra - 1 and can be drawn as a fraction of that ring. R live is scoped
+    the same way for the same reason, and onward cases that land in other kendras are
+    reported by `cross_kendra_reach_by_week` instead of being folded into either figure.
 
     The scenario's own planted shocks are IGNORED here. R potential is a property of the
     roster and the network, not of whatever happens to have gone wrong this quarter, which
@@ -172,7 +215,13 @@ def r_potential(scenario, draws, params=DEFAULT):
 def r_numbers(scenario, shocks, draws, params=DEFAULT, as_of_week=None, records=None):
     """One row per kendra, sorted by kendra id:
 
-    {kendra_id, r_potential, r_live_by_week, primary_ids, transmitted_ids}
+    {kendra_id, r_potential, r_live_by_week, cross_kendra_reach_by_week,
+     primary_ids, transmitted_ids, cross_kendra_ids}
+
+    `transmitted_ids` are the onward cases inside the kendra, the ones R live counts.
+    `cross_kendra_ids` are the onward cases this kendra's primaries pushed into OTHER
+    kendras, which `cross_kendra_reach_by_week` counts. Every onward case in the scenario
+    appears in exactly one of the two lists of exactly one kendra: its source's.
 
     `records` accepts an attribution result that has already been computed, so a caller
     answering "who is flagged AND what is R" does not pay for attribution twice.
@@ -183,22 +232,28 @@ def r_numbers(scenario, shocks, draws, params=DEFAULT, as_of_week=None, records=
     kendra_of = {m.id: m.kendra_id for m in scenario.members}
     primary = {r["member_id"]: r for r in records if _is_primary(r)}
     live = r_live_by_week(scenario, records, params)
+    reach = cross_kendra_reach_by_week(scenario, records, params)
     potential = r_potential(scenario, draws, params)
+
+    def onward_ids(kendra_id, inside):
+        return sorted(
+            r["member_id"]
+            for r in records
+            if r["label"] == TRANSMITTED
+            and r["source_id"] in primary
+            and kendra_of[r["source_id"]] == kendra_id
+            and (kendra_of[r["member_id"]] == kendra_id) == inside
+        )
 
     return [
         {
             "kendra_id": kendra_id,
             "r_potential": potential[kendra_id],
             "r_live_by_week": live[kendra_id],
+            "cross_kendra_reach_by_week": reach[kendra_id],
             "primary_ids": sorted(mid for mid in primary if kendra_of[mid] == kendra_id),
-            # Onward cases this kendra is responsible for, wherever they actually live.
-            "transmitted_ids": sorted(
-                r["member_id"]
-                for r in records
-                if r["label"] == TRANSMITTED
-                and r["source_id"] in primary
-                and kendra_of[r["source_id"]] == kendra_id
-            ),
+            "transmitted_ids": onward_ids(kendra_id, inside=True),
+            "cross_kendra_ids": onward_ids(kendra_id, inside=False),
         }
         for kendra_id in sorted(scenario.kendras())
     ]

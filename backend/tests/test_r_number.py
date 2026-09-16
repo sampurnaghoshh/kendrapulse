@@ -13,6 +13,7 @@ from sim.engine import Shock, make_draws, simulate
 from sim.generator import generate_scenario
 from sim.params import DEFAULT
 from sim.r_number import (
+    cross_kendra_reach_by_week,
     r_for_display,
     r_live_by_week,
     r_numbers,
@@ -133,6 +134,95 @@ def test_r_live_waits_for_the_source_to_become_a_case_too():
 
     assert series[10] == 0.0  # week 11: m002 is a case, m004 is not yet
     assert series[11] == 1.0  # week 12: both
+
+
+# ------------------------------------------------------------------------------------
+# Scale: R live stays inside the kendra, cross kendra reach reports the rest
+# ------------------------------------------------------------------------------------
+
+
+def _record(member_id, label, source_id, first_flag_week):
+    """A minimal attribution record. Both R functions read records and simulate nothing, so
+    writing the labels by hand is the only way to state a fact about the COUNTING rule
+    without also depending on whichever channel happened to fire in a generated world."""
+    return {
+        "member_id": member_id,
+        "label": label,
+        "source_id": source_id,
+        "source_cause": "shock",
+        "sole_source": True,
+        "path": [],
+        "first_flag_week": first_flag_week,
+        "tags": (),
+        "contributors": [],
+    }
+
+
+@pytest.fixture
+def spread_across_two_kendras(isolated_scenario):
+    """One primary case in kA with two onward cases: a peer in kA, and a member of kB.
+
+    kB shares no guarantee edge with kA, so in the real engine an onward case there could
+    only have arrived through a lender freezing top ups. What is being tested here is the
+    arithmetic that follows from such a case, so the labels are stated rather than grown.
+    """
+    records = [
+        _record("s000", INDEX, "s000", 2),
+        _record("s001", TRANSMITTED, "s000", 3),  # same kendra as her source
+        _record("s003", TRANSMITTED, "s000", 4),  # kB: charged to kA, counted separately
+    ]
+    return isolated_scenario, records
+
+
+def test_r_live_counts_only_onward_cases_inside_the_source_kendra(spread_across_two_kendras):
+    """One of the two onward cases is a kendra peer, so R live is 1.0 and not 2.0.
+
+    This is what puts R live on R potential's scale. Both numbers now answer "per case,
+    how much of THIS group goes down", so the figure under a cluster does not change
+    meaning the moment somebody flags.
+    """
+    scenario, records = spread_across_two_kendras
+    series = r_live_by_week(scenario, records, DEFAULT)
+
+    assert series["kA"][1] == 0.0  # week 2: s000 is a case, nobody has caught it yet
+    assert series["kA"][2] == 1.0  # week 3: the kendra peer s001 flags
+    assert series["kA"][3] == 1.0  # week 4: s003 flags in kB and does NOT raise this
+    assert series["kA"][-1] == 1.0
+    # kB has no primary case of its own, so it has no R live at all.
+    assert series["kB"] == [None] * DEFAULT.horizon_weeks
+
+
+def test_cross_kendra_reach_counts_the_onward_case_in_the_other_kendra(
+    spread_across_two_kendras,
+):
+    """Charged to kA, whose primary case caused it, and never to kB, where it landed."""
+    scenario, records = spread_across_two_kendras
+    reach = cross_kendra_reach_by_week(scenario, records, DEFAULT)
+
+    assert reach["kA"][2] == 0.0  # week 3: only the kendra peer has flagged so far
+    assert reach["kA"][3] == 1.0  # week 4: one primary in kA, one onward case outside it
+    assert reach["kB"] == [None] * DEFAULT.horizon_weeks
+
+
+def test_the_two_series_share_one_denominator(spread_across_two_kendras):
+    """They are read as a pair under one cluster, so they must divide by the same thing."""
+    scenario, records = spread_across_two_kendras
+    live = r_live_by_week(scenario, records, DEFAULT)["kA"]
+    reach = cross_kendra_reach_by_week(scenario, records, DEFAULT)["kA"]
+
+    assert [v is None for v in live] == [v is None for v in reach]
+    # Two onward cases, one primary: the pair adds up to the whole spread, split by scale.
+    assert live[-1] + reach[-1] == 2.0
+
+
+def test_cross_kendra_reach_is_zero_when_the_spread_stayed_at_home(demo_rows):
+    """Zero, not None: k0 HAS a case to divide by, and the honest answer is that none of
+    its stress left the kendra. None would wrongly say "no denominator"."""
+    _, rows = demo_rows
+    k0 = next(r for r in rows if r["kendra_id"] == "k0")
+    assert k0["r_live_by_week"][-1] == 1.0
+    assert k0["cross_kendra_reach_by_week"][-1] == 0.0
+    assert k0["cross_kendra_ids"] == []
 
 
 # ------------------------------------------------------------------------------------
@@ -261,15 +351,22 @@ def test_one_row_per_kendra_carrying_every_promised_field(demo_rows):
     assert [r["kendra_id"] for r in rows] == sorted(scenario.kendras())
     for row in rows:
         assert set(row) == {
-            "kendra_id", "r_potential", "r_live_by_week", "primary_ids", "transmitted_ids",
+            "kendra_id", "r_potential", "r_live_by_week", "cross_kendra_reach_by_week",
+            "primary_ids", "transmitted_ids", "cross_kendra_ids",
         }
-        assert len(row["r_live_by_week"]) == DEFAULT.horizon_weeks
-        assert all(v is None or v >= 0.0 for v in row["r_live_by_week"])
+        for key in ("r_live_by_week", "cross_kendra_reach_by_week"):
+            assert len(row[key]) == DEFAULT.horizon_weeks
+            assert all(v is None or v >= 0.0 for v in row[key])
+        # Both series share one denominator, so they are defined in exactly the same weeks.
+        assert [v is None for v in row["r_live_by_week"]] == [
+            v is None for v in row["cross_kendra_reach_by_week"]
+        ]
 
 
 def test_primary_and_transmitted_ids_agree_with_the_labels(demo_rows):
-    """primary_ids lists this kendra's own cases; transmitted_ids lists the onward cases it
-    is responsible for, wherever those members actually live."""
+    """primary_ids lists this kendra's own cases. transmitted_ids lists the onward cases
+    inside it, cross_kendra_ids the ones its primaries pushed into another kendra, and
+    every onward case is claimed by exactly one list of exactly one kendra: its source's."""
     scenario, rows = demo_rows
     draws = make_draws(scenario.n_members, DEFAULT, seed=BASELINE_DRAWS_SEED)
     records = {r["member_id"]: r for r in attribute(scenario, [], draws, DEFAULT)}
@@ -279,12 +376,14 @@ def test_primary_and_transmitted_ids_agree_with_the_labels(demo_rows):
         for member_id in row["primary_ids"]:
             assert records[member_id]["label"] in (INDEX, INDEPENDENT)
             assert kendra_of[member_id] == row["kendra_id"]
-        for member_id in row["transmitted_ids"]:
+        for member_id in row["transmitted_ids"] + row["cross_kendra_ids"]:
             assert records[member_id]["label"] == TRANSMITTED
             assert kendra_of[records[member_id]["source_id"]] == row["kendra_id"]
+        # The split is on where the onward case LIVES, not on where it came from.
+        assert all(kendra_of[mid] == row["kendra_id"] for mid in row["transmitted_ids"])
+        assert all(kendra_of[mid] != row["kendra_id"] for mid in row["cross_kendra_ids"])
 
-    # Every counted onward case is claimed by exactly one kendra: its source's.
-    claimed = [mid for row in rows for mid in row["transmitted_ids"]]
+    claimed = [mid for row in rows for mid in row["transmitted_ids"] + row["cross_kendra_ids"]]
     assert len(claimed) == len(set(claimed))
 
 

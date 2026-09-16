@@ -10,6 +10,7 @@ import pytest
 
 from sim.engine import Shock, make_draws, simulate
 from sim.generator import generate_scenario
+from sim.interventions import moratorium
 from sim.params import DEFAULT, N_CHANNELS
 
 from tests.conftest import build_scenario, make_member
@@ -261,11 +262,26 @@ def test_a_flagged_peer_does_not_rescue_anyone():
             assert previous[event["from_id"]]["s"] < DEFAULT.cover_min_peer_stress_block
 
 
-def test_interventions_are_not_silently_ignored(demo, draws):
-    """They arrive in Phase 3. Until then, accepting and dropping them would be worse than
-    refusing them."""
-    with pytest.raises(NotImplementedError):
-        simulate(demo, [], [{"type": "moratorium"}], DEFAULT, draws)
+def test_an_intervention_changes_due_and_nothing_else_directly(demo, draws):
+    """Phase 3 arrived: the engine now applies interventions, but only to `due`.
+
+    The check is deliberately narrow. Everything else that moves (her gap, who covers her,
+    her stress) has to move because `due` moved, and the one thing that must NEVER move is
+    another member's installment. If an intervention could reach income or savings, a
+    protected member in the smallest fix ranking might be protected by money the lender
+    never actually gave her.
+    """
+    member_id = demo.members[0].id
+    intervention = moratorium(member_id, start_week=3, weeks=2)
+    with_fix = simulate(demo, [], [intervention], DEFAULT, draws)
+    without = simulate(demo, [], [], DEFAULT, draws)
+
+    for week in sorted(without.states):
+        for m in demo.members:
+            expected = without.states[week][m.id]["due"]
+            if m.id == member_id and week in (3, 4):
+                expected = 0.0
+            assert with_fix.states[week][m.id]["due"] == pytest.approx(expected), (week, m.id)
 
 
 # ------------------------------------------------------------------------------------
