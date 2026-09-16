@@ -274,70 +274,127 @@ def simulate(scenario, shocks, interventions, params, draws) -> Run:
             buffer_draw = min(buffer[m.id] * params.buffer_draw_cap, max(due - net, 0.0))
             buffer[m.id] -= buffer_draw
 
-            cash = net + buffer_draw
+            cash_on_hand = net + buffer_draw
+            # What she actually carries to the meeting is the money earmarked for her
+            # installment, not her whole week's cash. Any surplus above the installment
+            # has already gone on the household before Monday and is not in her hand at
+            # the meeting. This cap is what makes covering a neighbour cost something:
+            # without it a member with a comfortable week absorbs a peer's whole shortfall
+            # out of spare change and the guarantee channel leaves no trace on her at all.
+            meeting_cash = min(cash_on_hand, due)
             week_row[m.id] = {
                 "income": income,
                 "expenses": expenses,
                 "due": due,
-                "cash": cash,
+                "cash_on_hand": cash_on_hand,
+                "meeting_cash": meeting_cash,
                 "consumption_draw": consumption_draw,
                 "buffer_draw": buffer_draw,
                 "lender_hit": lender_hit[m.id],
-                "own_shortfall": max(due - cash, 0.0),
-                "covered_in": 0.0,
-                "covered_out": 0.0,
+                "gap": max(due - meeting_cash, 0.0),  # her need BEFORE anyone helps
+                "capacity": 0.0,
+                "cover_received": 0.0,
+                "cover_given": 0.0,
+                "cover_from_cash": 0.0,
+                "cover_from_buffer": 0.0,
                 "surplus": max(net - due, 0.0),
             }
 
-        # ---- Pass B: guarantee cover (the only cross member pass) ---------------------
+        # ---- Pass B: the kendra meeting ----------------------------------------------
+        # Members pool cash at the meeting. A peer covers out of the money she brought for
+        # her OWN installment first and only then out of savings, so helping a neighbour
+        # can leave her short on the day. That is what makes transmission visible as
+        # transmission rather than as a quiet dent in somebody's savings.
+        #
+        # Every pledge is computed simultaneously from start of meeting positions, so no
+        # member's outcome depends on where she sits in the roster.
+
+        # 1. Capacity. One willingness draw and one size draw per peer-week, exactly as
+        #    before: a draw belongs to a person-week-channel, never to an event.
         for m in members:
-            remaining = week_row[m.id]["own_shortfall"]
-            if remaining <= 0:
+            p = idx[m.id]
+            if draws[p, week, CH_COVER] >= params.p_cover:
                 continue
-            for peer_id in scenario.guarantee_peers(m.id):
-                if remaining <= 0:
-                    break
-                # Eligibility uses LAST week's stress, not this week's. This week's stress
-                # does not exist yet in pass B, and using a partially computed one would
-                # make the outcome depend on roster order.
-                if s_prev[peer_id] >= params.cover_min_peer_stress_block:
-                    continue
-                p = idx[peer_id]
-                if draws[p, week, CH_COVER] >= params.p_cover:
-                    continue
-                capacity = (
-                    draws[p, week, CH_COVER_SIZE]
-                    * params.cover_capacity_share
-                    * buffer[peer_id]
-                )
-                amount = min(capacity, remaining)
+            if s_prev[m.id] >= params.cover_min_peer_stress_block:
+                continue  # already in trouble herself; she is not a source of help
+            week_row[m.id]["capacity"] = (
+                draws[p, week, CH_COVER_SIZE]
+                * params.cover_capacity_share
+                * (week_row[m.id]["meeting_cash"] + buffer[m.id])
+            )
+
+        # 2. Raw pledges: each needy member's gap is split equally among her eligible
+        #    peers. Equal split is the only allocation that is simultaneous and free of an
+        #    invented priority ordering between neighbours.
+        pledges: dict[str, dict[str, float]] = {m.id: {} for m in members}
+        for m in members:
+            gap = week_row[m.id]["gap"]
+            if gap <= 0:
+                continue
+            eligible = [
+                peer_id
+                for peer_id in scenario.guarantee_peers(m.id)
+                if week_row[peer_id]["capacity"] > 0
+            ]
+            if not eligible:
+                continue
+            share = gap / len(eligible)
+            for peer_id in eligible:
+                pledges[peer_id][m.id] = share
+
+        # 3. Nobody pledges more than she has. If her promises exceed her capacity, they
+        #    all shrink by the same factor rather than the first neighbour in the list
+        #    taking everything.
+        for m in members:
+            promised = sum(pledges[m.id].values())
+            if promised <= 0:
+                continue
+            scale = min(1.0, week_row[m.id]["capacity"] / promised)
+            for to_id in sorted(pledges[m.id]):
+                amount = pledges[m.id][to_id] * scale
                 if amount <= 0:
                     continue
-                # This is the transmission: the money leaves HER cushion.
-                buffer[peer_id] -= amount
-                week_row[peer_id]["covered_out"] += amount
-                week_row[m.id]["covered_in"] += amount
-                remaining -= amount
+                week_row[m.id]["cover_given"] += amount
+                week_row[to_id]["cover_received"] += amount
                 events.append({
                     "week": week,
                     "channel": "guarantee",
-                    "from_id": peer_id,
-                    "to_id": m.id,
+                    "from_id": m.id,
+                    "to_id": to_id,
                     "amount": amount,
                 })
 
-        # ---- Pass C: buffer top up, stress, status ------------------------------------
+        # 4. Settle: cash first, then savings. The order is the entire mechanism.
+        for m in members:
+            given = week_row[m.id]["cover_given"]
+            if given <= 0:
+                continue
+            from_cash = min(week_row[m.id]["meeting_cash"], given)
+            from_buffer = given - from_cash
+            buffer[m.id] -= from_buffer
+            week_row[m.id]["cover_from_cash"] = from_cash
+            week_row[m.id]["cover_from_buffer"] = from_buffer
+
+        # ---- Pass C: payments, buffer top up, stress, status -------------------------
         for m in members:
             row = week_row[m.id]
             buffer[m.id] += row["surplus"] * params.buffer_topup_rate
 
             # Two shortfalls, and the distinction is load bearing:
-            #   own_shortfall drives HER stress. Being rescued by a neighbour does not
-            #     mean she was fine this week.
+            #   stress_shortfall drives HER stress. It EXCLUDES what her peers put in, so
+            #     the index case stays visible after she is bailed out, and INCLUDES the
+            #     cash she gave away, so a giver becomes visible too.
             #   unpaid drives the kendra arrears the LENDER sees. It only knows what
-            #     actually arrived.
-            unpaid = row["own_shortfall"] - row["covered_in"]
-            shortfall_ratio = row["own_shortfall"] / row["due"] if row["due"] > 0 else 0.0
+            #     actually arrived at the meeting.
+            stress_shortfall = max(row["due"] - (row["meeting_cash"] - row["cover_given"]), 0.0)
+            unpaid = max(stress_shortfall - row["cover_received"], 0.0)
+
+            # Clipped at 1. A peer who pledges out of savings can end up with a
+            # stress_shortfall above her due; those rupees are already counted by the
+            # depletion term below, and charging her twice for the same money would
+            # overstate her distress. Saturating the term is the honest reading of
+            # "she gave away everything she brought".
+            shortfall_ratio = min(stress_shortfall / row["due"], 1.0) if row["due"] > 0 else 0.0
             depletion = _clip01(1.0 - buffer[m.id] / buffer_start[m.id])
             raw = params.w_shortfall * shortfall_ratio + params.w_buffer * depletion
 
@@ -346,6 +403,7 @@ def simulate(scenario, shocks, interventions, params, draws) -> Run:
             # by half each week, so distress persists without ever ratcheting.
             s = _clip01(max(raw, params.stress_memory * s_prev[m.id]))
 
+            row["stress_shortfall"] = stress_shortfall
             row["unpaid"] = unpaid
             row["paid"] = row["due"] - unpaid
             row["buffer"] = buffer[m.id]

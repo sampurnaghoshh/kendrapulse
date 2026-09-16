@@ -117,8 +117,15 @@ def test_baseline_is_mostly_green(demo):
         base = run(demo, [], make_draws(demo.n_members, DEFAULT, seed=seed))
         flagged = [m.id for m in demo.members if base.flagged(m.id)]
         assert len(flagged) <= 3, f"seed {seed}: {flagged}"
-        # Whoever does flag must be one of the deliberately slipping livelihoods.
-        assert set(flagged) <= declining, f"seed {seed}: {flagged}"
+        # Whoever flags must have a reason, and with no shock planted there are exactly
+        # two legitimate ones: her own livelihood is slipping, or she carried a neighbour
+        # whose livelihood is. The second is not noise, it is the guarantee channel doing
+        # its job on an INDEPENDENT case, and Phase 2 should label her TRANSMITTED.
+        for member_id in flagged:
+            gave = any(
+                base.states[w][member_id]["cover_given"] > 0 for w in base.states
+            )
+            assert member_id in declining or gave, f"seed {seed}: {member_id} flagged for no reason"
 
 
 def test_a_severe_shock_raises_stress(demo, draws):
@@ -195,16 +202,20 @@ def test_cover_never_exceeds_the_shortfall_it_is_covering(demo, draws):
     shocked = run(demo, [Shock(type="crop_loss", start_week=2, member_id="m000")], draws)
     for week, week_row in shocked.states.items():
         for member_id, row in week_row.items():
-            assert row["covered_in"] <= row["own_shortfall"] + 1e-9, (member_id, week)
+            assert row["cover_received"] <= row["gap"] + 1e-9, (member_id, week)
 
 
 def test_the_two_shortfalls_reconcile(demo, draws):
-    """own_shortfall drives her stress, unpaid drives what the lender sees. They must
+    """stress_shortfall drives her stress, unpaid drives what the lender sees. They must
     differ by exactly what her peers put in, or one of the two is lying."""
     shocked = run(demo, [Shock(type="crop_loss", start_week=2, member_id="m000")], draws)
     for week_row in shocked.states.values():
         for row in week_row.values():
-            assert row["unpaid"] == pytest.approx(row["own_shortfall"] - row["covered_in"])
+            expected_shortfall = max(row["due"] - (row["meeting_cash"] - row["cover_given"]), 0.0)
+            assert row["stress_shortfall"] == pytest.approx(expected_shortfall)
+            assert row["unpaid"] == pytest.approx(
+                max(row["stress_shortfall"] - row["cover_received"], 0.0)
+            )
             assert row["paid"] + row["unpaid"] == pytest.approx(row["due"])
             assert row["unpaid"] >= -1e-9
 
@@ -217,8 +228,8 @@ def test_guarantee_transfers_reconcile_with_member_totals(demo, draws):
         for member_id, row in week_row.items():
             given = sum(e["amount"] for e in covers if e["from_id"] == member_id)
             got = sum(e["amount"] for e in covers if e["to_id"] == member_id)
-            assert given == pytest.approx(row["covered_out"])
-            assert got == pytest.approx(row["covered_in"])
+            assert given == pytest.approx(row["cover_given"])
+            assert got == pytest.approx(row["cover_received"])
 
 
 def test_cover_only_flows_between_kendra_peers(demo, draws):
@@ -255,3 +266,101 @@ def test_interventions_are_not_silently_ignored(demo, draws):
     refusing them."""
     with pytest.raises(NotImplementedError):
         simulate(demo, [], [{"type": "moratorium"}], DEFAULT, draws)
+
+
+# ------------------------------------------------------------------------------------
+# The kendra meeting: transmission has to be visible, and has to be caused by the shock
+# ------------------------------------------------------------------------------------
+
+# The seed is fixed rather than swept. Transmission depends on which peers happen to be
+# willing in which weeks, so it does not happen on every seed; pinning one keeps the pair
+# of tests below an exact statement about one world and its counterfactual.
+TRANSMISSION_SEED = 0
+TRANSMITTED_PEER = "s001"
+
+
+def test_a_shock_transmits_to_a_kendra_peer(single_kendra):
+    """A peer who covers out of the cash she brought for her own installment is short that
+    day. That is the whole mechanism: transmission you can see on the person it reached."""
+    sc = single_kendra
+    draws = make_draws(sc.n_members, DEFAULT, seed=TRANSMISSION_SEED)
+    actual = run(sc, [Shock(type="health", start_week=1, member_id="s000")], draws)
+
+    assert actual.flagged("s000"), "the index case should flag"
+    assert actual.peak_stress(TRANSMITTED_PEER, as_of_week=6) >= DEFAULT.amber, (
+        f"{TRANSMITTED_PEER} peaked at "
+        f"{actual.peak_stress(TRANSMITTED_PEER, as_of_week=6):.3f} by week 6"
+    )
+    # And she got there by giving, not by her own bad luck.
+    assert any(
+        actual.states[w][TRANSMITTED_PEER]["cover_given"] > 0 for w in range(1, 7)
+    )
+
+
+def test_that_peer_is_clean_without_the_shock(single_kendra):
+    """The other half of the pair. Same scenario, same draws, shock removed: if she flags
+    here too then the first test was measuring her own trajectory, not transmission."""
+    sc = single_kendra
+    draws = make_draws(sc.n_members, DEFAULT, seed=TRANSMISSION_SEED)
+    without = run(sc, [], draws)
+
+    assert not without.flagged(TRANSMITTED_PEER), (
+        f"{TRANSMITTED_PEER} reached {without.peak_stress(TRANSMITTED_PEER):.3f} with no "
+        "shock anywhere, so the transmission test proves nothing"
+    )
+
+
+def test_cover_comes_from_cash_before_savings(single_kendra):
+    """Savings are the second pocket, never the first."""
+    sc = single_kendra
+    draws = make_draws(sc.n_members, DEFAULT, seed=TRANSMISSION_SEED)
+    # Two needy members at once, so the pledges of whoever is willing outrun the money she
+    # brought and the second pocket has to open.
+    result = run(sc, [
+        Shock(type="health", start_week=1, member_id="s000"),
+        Shock(type="job_loss", start_week=1, member_id="s004"),
+    ], draws)
+
+    touched_savings = False
+    for week_row in result.states.values():
+        for row in week_row.values():
+            assert row["cover_from_cash"] + row["cover_from_buffer"] == pytest.approx(
+                row["cover_given"]
+            )
+            if row["cover_from_buffer"] > 1e-9:
+                touched_savings = True
+                # She only opens the savings tin once the meeting money is gone.
+                assert row["cover_from_cash"] == pytest.approx(row["meeting_cash"])
+    assert touched_savings, "no cover ever reached the savings pocket, so the order is untested"
+
+
+def test_pledges_never_exceed_capacity(single_kendra):
+    """Proportional scaling must actually bind: nobody promises more than she has."""
+    sc = single_kendra
+    draws = make_draws(sc.n_members, DEFAULT, seed=TRANSMISSION_SEED)
+    result = run(sc, [Shock(type="health", start_week=1, member_id="s000")], draws)
+    for week_row in result.states.values():
+        for member_id, row in week_row.items():
+            assert row["cover_given"] <= row["capacity"] + 1e-9, member_id
+
+
+def test_a_single_health_shock_does_not_cross_kendras_without_a_shared_lender(demo):
+    """One member's health shock has no correlated income channel and no guarantee tie
+    outside her own kendra. The only way it can reach another kendra is a lender freezing
+    top ups, so anyone newly flagged elsewhere must share a lender with her kendra."""
+    shocked_id = "m000"
+    home = demo.member(shocked_id).kendra_id
+    home_lenders = {l for mid in demo.kendras()[home] for l in demo.member(mid).lenders}
+
+    draws = make_draws(demo.n_members, DEFAULT, seed=5)
+    base = run(demo, [], draws)
+    actual = run(demo, [Shock(type="health", start_week=2, member_id=shocked_id)], draws)
+
+    for m in demo.members:
+        if m.kendra_id == home:
+            continue
+        if actual.flagged(m.id) and not base.flagged(m.id):
+            assert m.lenders & home_lenders, (
+                f"{m.id} in {m.kendra_id} was newly flagged with no shared lender path "
+                f"back to {home}"
+            )

@@ -89,8 +89,10 @@ class Params:
     # ----------------------------------------------------------------------------------
     p_cover: float = 0.55  # REASON: a peer steps in more often than not, but joint
     # liability in practice is social pressure, not an automatic guarantee
-    cover_capacity_share: float = 0.30  # REASON: most of her own buffer a peer will
-    # commit to somebody else in a single week
+    cover_capacity_share: float = 0.30  # REASON: the most of her own money a peer will
+    # commit to somebody else in one week, as a share of CASH ON HAND PLUS BUFFER. It
+    # spans both pockets because cover is settled at the meeting out of the cash she
+    # brought for her own installment first, and only then out of savings.
     cover_min_peer_stress_block: float = 0.35  # REASON: a peer who is already flagged
     # does not rescue anyone. Numerically equal to `amber` today, but kept separate so
     # stability can perturb the two independently.

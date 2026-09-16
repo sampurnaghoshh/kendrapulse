@@ -57,3 +57,13 @@ def isolated_scenario():
     members = [make_member(i, "kA", "tailoring", "Sahyog") for i in range(3)]
     members += [make_member(i, "kB", "dairy", "Uday Credit") for i in range(3, 6)]
     return build_scenario(members)
+
+
+@pytest.fixture
+def single_kendra():
+    """One five member kendra with no links to anywhere else.
+
+    Guarantee cover is the only channel that can move anything here, so a peer who flags
+    can only have got there through the meeting.
+    """
+    return build_scenario([make_member(i, "kA", "tailoring", "Sahyog") for i in range(5)])

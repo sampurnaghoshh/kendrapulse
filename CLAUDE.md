@@ -121,3 +121,7 @@ Tests the LOGIC, never accuracy on real borrowers.
 8. README (setup, data assumptions, every parameter and its source, demo steps), deploy.
 
 Cut order if behind: deploy, reality check, LLM (keep fallback parser), manual intervention sandbox, Two worlds animation (use toggle).
+
+## Scope for 17 Sep
+* Skip `app.py`, CORS, the Vite dev server proxy and `httpx`. The backend gets its HTTP surface in Phase 5, not before.
+* Frontend scaffold is a bare Vite app. No fetch.
