@@ -1,0 +1,627 @@
+{
+  "what_this_is": "A test of the attribution LOGIC, not of accuracy on real borrowers. It asks whether the procedure recovers a planted cause when it is denied the true parameters, the true incomes and the true dice. No number here is a claim about any real household.",
+  "config": {
+    "n_scenarios": 100,
+    "scenarios_scored": 93,
+    "scenarios_skipped_nobody_flagged": 7,
+    "base_seed": 0,
+    "generator_seeds": "0 to 99",
+    "engine_seed_offset": 10000,
+    "param_noise": [
+      0.8,
+      1.2
+    ],
+    "income_noise": 0.15,
+    "trend_noise": 0.15,
+    "shocks_per_scenario": "1 to 3",
+    "shock_start_weeks": "1 to 6",
+    "shock_types": [
+      "health",
+      "crop_loss",
+      "job_loss",
+      "festival_spend"
+    ],
+    "kendras": 5,
+    "members_per_kendra": 5,
+    "git_commit": "a6fcf61e15ca5ad70363a5d512b8a633f93c9e3b",
+    "shock_count_mix": {
+      "1": 19,
+      "2": 32,
+      "3": 42
+    },
+    "scenarios_with_near_simultaneous_shocks": 61
+  },
+  "totals": {
+    "observed_flagged_members": 408,
+    "engine": {
+      "counts": {
+        "correct": 269,
+        "wrong_source": 15,
+        "wrong_label": 13,
+        "unexplained": 111
+      },
+      "accuracy_when_explained": 0.9057239057239057,
+      "overall_accuracy": 0.6593137254901961,
+      "n_explained": 297,
+      "n_observed": 408
+    },
+    "baseline": {
+      "counts": {
+        "correct": 354,
+        "wrong_source": 17,
+        "wrong_label": 37,
+        "unexplained": 0
+      },
+      "accuracy_when_explained": 0.8676470588235294,
+      "overall_accuracy": 0.8676470588235294,
+      "n_explained": 408,
+      "n_observed": 408
+    }
+  },
+  "per_true_label": {
+    "engine": {
+      "INDEX": {
+        "n": 158,
+        "counts": {
+          "correct": 157,
+          "wrong_source": 0,
+          "wrong_label": 0,
+          "unexplained": 1
+        },
+        "accuracy_when_explained": 1.0,
+        "overall_accuracy": 0.9936708860759493,
+        "n_explained": 157,
+        "n_observed": 158
+      },
+      "TRANSMITTED": {
+        "n": 227,
+        "counts": {
+          "correct": 96,
+          "wrong_source": 15,
+          "wrong_label": 11,
+          "unexplained": 105
+        },
+        "accuracy_when_explained": 0.7868852459016393,
+        "overall_accuracy": 0.42290748898678415,
+        "n_explained": 122,
+        "n_observed": 227
+      },
+      "INDEPENDENT": {
+        "n": 23,
+        "counts": {
+          "correct": 16,
+          "wrong_source": 0,
+          "wrong_label": 2,
+          "unexplained": 5
+        },
+        "accuracy_when_explained": 0.8888888888888888,
+        "overall_accuracy": 0.6956521739130435,
+        "n_explained": 18,
+        "n_observed": 23
+      }
+    },
+    "baseline": {
+      "INDEX": {
+        "n": 158,
+        "counts": {
+          "correct": 158,
+          "wrong_source": 0,
+          "wrong_label": 0,
+          "unexplained": 0
+        },
+        "accuracy_when_explained": 1.0,
+        "overall_accuracy": 1.0,
+        "n_explained": 158,
+        "n_observed": 158
+      },
+      "TRANSMITTED": {
+        "n": 227,
+        "counts": {
+          "correct": 181,
+          "wrong_source": 17,
+          "wrong_label": 29,
+          "unexplained": 0
+        },
+        "accuracy_when_explained": 0.7973568281938326,
+        "overall_accuracy": 0.7973568281938326,
+        "n_explained": 227,
+        "n_observed": 227
+      },
+      "INDEPENDENT": {
+        "n": 23,
+        "counts": {
+          "correct": 15,
+          "wrong_source": 0,
+          "wrong_label": 8,
+          "unexplained": 0
+        },
+        "accuracy_when_explained": 0.6521739130434783,
+        "overall_accuracy": 0.6521739130434783,
+        "n_explained": 23,
+        "n_observed": 23
+      }
+    }
+  },
+  "confusion_truth_by_engine": {
+    "INDEX": {
+      "INDEX": 157,
+      "TRANSMITTED": 0,
+      "INDEPENDENT": 0,
+      "unexplained": 1
+    },
+    "TRANSMITTED": {
+      "INDEX": 0,
+      "TRANSMITTED": 111,
+      "INDEPENDENT": 11,
+      "unexplained": 105
+    },
+    "INDEPENDENT": {
+      "INDEX": 0,
+      "TRANSMITTED": 2,
+      "INDEPENDENT": 16,
+      "unexplained": 5
+    }
+  },
+  "hard_cases": {
+    "definition": "scenarios where two or more shocks started within 2 weeks of each other",
+    "n_members": 309,
+    "engine": {
+      "counts": {
+        "correct": 206,
+        "wrong_source": 12,
+        "wrong_label": 11,
+        "unexplained": 80
+      },
+      "accuracy_when_explained": 0.8995633187772926,
+      "overall_accuracy": 0.6666666666666666,
+      "n_explained": 229,
+      "n_observed": 309
+    },
+    "baseline": {
+      "counts": {
+        "correct": 271,
+        "wrong_source": 11,
+        "wrong_label": 27,
+        "unexplained": 0
+      },
+      "accuracy_when_explained": 0.8770226537216829,
+      "overall_accuracy": 0.8770226537216829,
+      "n_explained": 309,
+      "n_observed": 309
+    }
+  },
+  "clean_cases": {
+    "definition": "every other scenario",
+    "n_members": 99,
+    "engine": {
+      "counts": {
+        "correct": 63,
+        "wrong_source": 3,
+        "wrong_label": 2,
+        "unexplained": 31
+      },
+      "accuracy_when_explained": 0.9264705882352942,
+      "overall_accuracy": 0.6363636363636364,
+      "n_explained": 68,
+      "n_observed": 99
+    },
+    "baseline": {
+      "counts": {
+        "correct": 83,
+        "wrong_source": 6,
+        "wrong_label": 10,
+        "unexplained": 0
+      },
+      "accuracy_when_explained": 0.8383838383838383,
+      "overall_accuracy": 0.8383838383838383,
+      "n_explained": 99,
+      "n_observed": 99
+    }
+  },
+  "failure_examples": {
+    "engine": {
+      "correct": [
+        {
+          "generator_seed": 0,
+          "member_id": "m010",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m012",
+          "truth_label": "INDEX",
+          "truth_source_id": "m012",
+          "engine_label": "INDEX",
+          "engine_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m014",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m005",
+          "truth_label": "INDEX",
+          "truth_source_id": "m005",
+          "engine_label": "INDEX",
+          "engine_source_id": "m005",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m007",
+          "truth_label": "INDEX",
+          "truth_source_id": "m007",
+          "engine_label": "INDEX",
+          "engine_source_id": "m007",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ],
+      "wrong_source": [
+        {
+          "generator_seed": 3,
+          "member_id": "m017",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m015",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m008",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m013",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m014",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m012",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 19,
+          "member_id": "m021",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m022",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m009",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 35,
+          "member_id": "m008",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m007",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m005",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 50,
+          "member_id": "m017",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m015",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m005",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        }
+      ],
+      "wrong_label": [
+        {
+          "generator_seed": 0,
+          "member_id": "m015",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": "INDEPENDENT",
+          "engine_source_id": "m015",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m023",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": "INDEPENDENT",
+          "engine_source_id": "m023",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 14,
+          "member_id": "m003",
+          "truth_label": "INDEPENDENT",
+          "truth_source_id": "m003",
+          "engine_label": "TRANSMITTED",
+          "engine_source_id": "m011",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 19,
+          "member_id": "m010",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m022",
+          "engine_label": "INDEPENDENT",
+          "engine_source_id": "m010",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 19,
+          "member_id": "m014",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m009",
+          "engine_label": "INDEPENDENT",
+          "engine_source_id": "m014",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ],
+      "unexplained": [
+        {
+          "generator_seed": 0,
+          "member_id": "m017",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": null,
+          "engine_source_id": null,
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m018",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": null,
+          "engine_source_id": null,
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m012",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m007",
+          "engine_label": null,
+          "engine_source_id": null,
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 3,
+          "member_id": "m002",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m004",
+          "engine_label": null,
+          "engine_source_id": null,
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m010",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "engine_label": null,
+          "engine_source_id": null,
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ]
+    },
+    "baseline": {
+      "correct": [
+        {
+          "generator_seed": 0,
+          "member_id": "m010",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m012",
+          "truth_label": "INDEX",
+          "truth_source_id": "m012",
+          "baseline_label": "INDEX",
+          "baseline_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m014",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m012",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m005",
+          "truth_label": "INDEX",
+          "truth_source_id": "m005",
+          "baseline_label": "INDEX",
+          "baseline_source_id": "m005",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m007",
+          "truth_label": "INDEX",
+          "truth_source_id": "m007",
+          "baseline_label": "INDEX",
+          "baseline_source_id": "m007",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ],
+      "wrong_source": [
+        {
+          "generator_seed": 0,
+          "member_id": "m017",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m018",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m011",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m014",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m012",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 9,
+          "member_id": "m024",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m022",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m021",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 19,
+          "member_id": "m010",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m022",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m014",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 20,
+          "member_id": "m022",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m018",
+          "baseline_label": "TRANSMITTED",
+          "baseline_source_id": "m021",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ],
+      "wrong_label": [
+        {
+          "generator_seed": 0,
+          "member_id": "m015",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "INDEPENDENT",
+          "baseline_source_id": "m015",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 0,
+          "member_id": "m018",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "INDEX",
+          "baseline_source_id": "m018",
+          "n_shocks": 2,
+          "near_simultaneous_shocks": false,
+          "note": ""
+        },
+        {
+          "generator_seed": 1,
+          "member_id": "m012",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m007",
+          "baseline_label": "INDEPENDENT",
+          "baseline_source_id": "m012",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m017",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "INDEPENDENT",
+          "baseline_source_id": "m017",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        },
+        {
+          "generator_seed": 4,
+          "member_id": "m023",
+          "truth_label": "TRANSMITTED",
+          "truth_source_id": "m012",
+          "baseline_label": "INDEPENDENT",
+          "baseline_source_id": "m023",
+          "n_shocks": 3,
+          "near_simultaneous_shocks": true,
+          "note": "two or more shocks started within 2 weeks of each other, which is hard for any procedure to separate"
+        }
+      ],
+      "unexplained": []
+    }
+  }
+}

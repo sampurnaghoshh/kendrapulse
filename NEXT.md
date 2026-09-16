@@ -16,7 +16,10 @@ Running note of where the build is. Update at the end of every phase.
 - **Phase 3 part 2** `stability.py`: 50 perturbed reruns, "stable in k of 50 runs".
 - **Phase 3 part 3 THE GATE IS PASSED.** `data/demo_scenario.json`, `backend/demo/story.py`
   and `backend/scripts/demo_story.py`. The script tells the whole story in the terminal in
-  3.3 seconds, so the prototype exists. 140 tests pass.
+  3.3 seconds, so the prototype exists.
+- **Two part stability badge**: "flagged in 23 of 50 reruns; same cause in 22 of those".
+- **Phase 4 part 1** `validation/cause_recovery.py` + `scripts/run_validation.py`, run at
+  n=100. 163 tests pass. `reality_check.py` is still to do.
 
 ## Phase 2 part 1: what attribution does now
 
@@ -164,7 +167,9 @@ r_live_by_week, cross_kendra_reach_by_week}`.
 
 `stability(scenario, shocks, interventions, params, base_records, seed, n_runs=50)` returns one
 entry per base record, in the same order, so the UI can zip badges onto cards it already has:
-`{member_id, base_label, base_source_id, matched, differed, not_flagged, n_runs, badge_text}`.
+`{member_id, base_label, base_source_id, matched, differed, not_flagged, flagged_runs,
+source_agreement, n_runs, badge_text}`. The badge text itself is described further down, under
+"The stability badge is two numbers now".
 
 - Run k perturbs every `params.PERTURBABLE` field by its own U(0.7, 1.3) AND rolls fresh
   dice. Varying only the settings would answer "robust to our choices", only the dice
@@ -210,19 +215,78 @@ The story, as it runs today:
    index case stays flagged, which is the honest shape: a lender cannot undo an illness.
 7. Anita Kisku in k0 is INDEPENDENT and her stress still reached Savita Bai in week 12.
 
-## Two things the gate revealed, both worth handling before the video
+## The stability badge is two numbers now
 
-**The transmitted badges are low, and the reason is not what it looks like.** m011 scores 22
-of 50, m012 and m014 around 11. But `differed` is 0 or 1 in every case: the failures are
-almost entirely `not_flagged`. When a rerun flags her at all, we name the right source. So the
-honest reading is "the CASE is marginal under 30% parameter noise", not "the attribution is a
-coin flip", and the script already says that in words under the badge. Options, in preference
-order: say it out loud in the video (it is a strength, not a weakness, and no competitor will
-have a number like it); or add a second figure to the badge, "22 of 50 reruns flagged her, and
-21 of those 22 named Mamta"; or raise the shock severity so the transmitted cases sit further
-from the threshold. Do NOT quietly narrow the perturbation range to make the number look good.
+`{matched, differed, not_flagged, flagged_runs, source_agreement, n_runs, badge_text}`, and the
+badge reads:
 
-**The shared lender channel fires but never flags anybody.** Yesterday's note said
+    flagged in 23 of 50 reruns; same cause in 22 of those
+
+`flagged_runs = matched + differed`, `source_agreement = matched / flagged_runs` (None when she
+never flagged, because a zero would read as "we never named the right cause" rather than "never
+asked"). Perturbation range is untouched at U(0.7, 1.3).
+
+One figure was lying. "Stable in 22 of 50" reads as "the attribution is a coin flip", but
+`differed` was 0 or 1 on every transmitted case: almost every miss was `not_flagged`. The demo
+now reports 92 to 100 percent source agreement on all four transmitted cases against 11 to 23
+reruns flagging them. **A member can be hard to call and easy to explain**, and that is the
+distinction to make out loud in the video. The script says it in words under each badge
+("A marginal case: only 12 reruns put her over the line at all. When they did, we named the
+same cause 100% of the time.").
+
+## Phase 4 part 1: cause recovery, and what n=100 actually says
+
+`validation/cause_recovery.py` runs three parties over each seeded scenario:
+
+- **TRUTH** has true params, true incomes, true dice. Its flagged set is the OBSERVED set (the
+  people an officer would be looking at) and its full knowledge labels are ground truth.
+- **ENGINE UNDER TEST** gets the same roster, graph, shocks and event log, but params at
+  U(0.8, 1.2), `weekly_income` and `income_trend` with 15% multiplicative noise, and a dice
+  seed offset by 10,000. It must explain the observed set, which is NOT the set its own world
+  flagged. That mismatch is the point: an officer brings you a list of people in trouble, not a
+  list your model predicted.
+- **BASELINE**, observable data only, no simulation: shock -> INDEX; else gave cover per the
+  event log -> TRANSMITTED from whoever she covered most; else INDEPENDENT. A test
+  monkeypatches `simulate` to raise inside it so it can never quietly cheat.
+
+Outcomes per observed member: `correct`, `wrong_source`, `wrong_label`, `unexplained` (engine
+only: her own world never flagged her). Two accuracies, because they answer different
+questions. `accuracy_when_explained` judges the LOGIC; `overall_accuracy` counts `unexplained`
+as not correct and judges the DEPLOYED SYSTEM. `perturbed_params` is deliberately a second copy
+at a narrower band rather than an import from `stability.py`, so neither range can be widened to
+flatter the other.
+
+**n=100, 93 scenarios scored, 408 observed flagged members, 11 seconds:**
+
+|                        | engine | baseline |
+| ---------------------- | -----: | -------: |
+| accuracy when explained| 90.6%  |  86.8%   |
+| overall accuracy       | 65.9%  |  86.8%   |
+| INDEX (n 158)          | 100.0% | 100.0%   |
+| TRANSMITTED (n 227)    | 78.7%  |  79.7%   |
+| INDEPENDENT (n 23)     | 88.9%  |  65.2%   |
+
+Read it honestly, because two of these numbers are uncomfortable:
+
+1. **INDEX is solved by both.** 100% for a spreadsheet rule too. We should not claim credit for
+   it; "she has a shock, so she is the index case" needs no simulation.
+2. **On TRANSMITTED the simulation ties the spreadsheet** (78.7 against 79.7). The baseline rule
+   "she covered somebody, so blame whoever she covered most" is genuinely good, because in this
+   model guarantee cover IS the main channel and the event log records it.
+3. **The simulation's real win is INDEPENDENT: 88.9% against 65.2%.** The baseline calls a
+   declining income TRANSMITTED whenever she happened to cover a neighbour once. Only the
+   counterfactual can say "she would have flagged anyway". That is the claim to make in the
+   video, and it is exactly the case that changes what the officer should DO (a moratorium is
+   useless for her).
+4. **27% of observed members are `unexplained`** (111 of 408), and 105 of those are true
+   TRANSMITTED cases. The engine's noisy world simply does not flag the same marginal peers.
+   This is the same threshold marginality the stability badge found, seen from the other side.
+   It is a coverage problem, not a logic problem, and it is why `overall_accuracy` is 65.9%.
+5. Near simultaneous shocks (2+ within 2 weeks) barely hurt: 90.0% against 92.6% when
+   explained. Worth saying, since the build contract predicted that would be the hard case.
+
+## The shared lender channel fires but never flags anybody
+
 `cross_kendra_reach_by_week` is 0 everywhere; it still is, but now we know why. Week 5 really
 does freeze top ups for 8 members across other kendras and takes Rs 10,255 of their savings,
 it just never pushes one of them over amber. To get a genuine cross kendra case, lower
@@ -240,26 +304,49 @@ Still open: the k0 pair (m002 INDEPENDENT, m004 TRANSMITTED) flags in weeks 11 a
 enough that it does not compete with the k2 story and in fact gives section 7 its case. Leave
 it. If the video runs long, the k0 pair is the part to cut.
 
+### TOMORROW, FIRST JOB: make the hero transmitted case less marginal
+
+Two separate findings now point at the same root cause. The stability badge says the k2 peers
+only flag in 11 to 23 of 50 reruns, and cause recovery says 105 of 227 true TRANSMITTED cases
+are `unexplained`. Both are the same thing: a transmitted peer lands a hair over `amber`, so any
+nudge to the settings or the dice leaves her green. The attribution is fine. The CASE is thin.
+
+Fix it with SCENARIO INPUTS ONLY. Do not touch `amber`, the stress weights, the perturbation
+ranges or any code path. Things to try, cheapest first, checking the badge after each:
+
+1. Raise the health shock severity or duration in `data/demo_scenario.json` (the `Shock` fields
+   are already there and override the params default). A deeper shock means a bigger gap at the
+   meeting, so the peers who cover it are pushed further past the line.
+2. Thin the savings buffers of m011, m012 and m014 specifically, or raise their
+   `installment_share`, via the generator seed or a scenario level override. A peer with less
+   cushion absorbs the same cover as real distress.
+3. Plant a second small shock on another k2 member so two neighbours need cover in the same
+   week, which doubles what the givers carry.
+
+Target: the hero transmitted case flagging in 35 or more of 50 reruns while `source_agreement`
+stays above 0.9. Re run `scripts/demo_story.py` and `scripts/run_validation.py --n 100` after
+each attempt; the validation `unexplained` count should fall too, since it is the same
+marginality. If none of the three works, say so in the video rather than moving a threshold.
+
 ## Next
 
-- **Phase 4**: `validation/cause_recovery.py` and `validation/reality_check.py`, plus
-  `scripts/run_validation.py` writing `data/validation_report.json`. ~500 random scenarios,
-  1 to 3 planted shocks. Ground truth is the attribution procedure run with TRUE params and
-  TRUE draws; the engine under test gets perturbed params, noisy incomes and a DIFFERENT seed.
-  Report agreement per class, a confusion matrix and listed failure cases. `stability.py`
-  already has the perturbation machinery (`perturbed_params`), so reuse it rather than writing
-  a second copy.
-- Then **Phase 5**: `app.py` routes plus `scripts/export_snapshot.py`. Note `build_story()`
-  already returns exactly what `GET /scenario/demo` and the snapshot need, so Phase 5 is
-  mostly plumbing.
+- **Tomorrow, in order**: the tuning above, then `scripts/run_validation.py --n 500` (about 55
+  seconds at the measured 0.11s per scenario), then `validation/reality_check.py` (more lenders
+  means more overdue, a weak monsoon hits a shared income source together, low overdue in
+  normal conditions) folded into the same report.
+- Then **Phase 5**: `app.py` routes plus `scripts/export_snapshot.py`. `build_story()` already
+  returns exactly what `GET /scenario/demo` and the snapshot need, and `GET /validation/report`
+  is just `data/validation_report.json`, so Phase 5 is mostly plumbing.
+- Then **Phase 6** frontend, which is the last thing with real risk in it.
 - Deferred on purpose, pick up only if there is time: `scheme_linkage`, a manual intervention
-  sandbox, and the second figure on the stability badge described above.
+  sandbox, and provoking a genuine cross kendra case.
 
 ## Handy while working
 
 ```
 cd backend && .venv/Scripts/python.exe -m pytest
 cd backend && .venv/Scripts/python.exe scripts/demo_story.py
+cd backend && .venv/Scripts/python.exe scripts/run_validation.py --n 100
 ```
 
 Demo baseline that exercises the trend as a cause: `generate_scenario()` with
