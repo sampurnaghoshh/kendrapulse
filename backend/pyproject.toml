@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+# pythonpath = "." lets tests do `from sim.engine import simulate` with no install step
+# and no sys.path juggling inside the test files themselves.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

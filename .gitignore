@@ -1,0 +1,25 @@
+# Strategy notes are not part of the build contract and stay out of the repo.
+docs/STRATEGY.md
+
+# Secrets (LLM_API_KEY lives here from Phase 7 on).
+.env
+.env.*
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
