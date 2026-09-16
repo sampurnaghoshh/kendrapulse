@@ -341,6 +341,95 @@ marginality. If none of the three works, say so in the video rather than moving 
 - Deferred on purpose, pick up only if there is time: `scheme_linkage`, a manual intervention
   sandbox, and provoking a genuine cross kendra case.
 
+## Validation fairness
+
+The n=100 numbers above are recorded honestly but they are NOT yet a fair comparison, and this
+section is the fix. Read it before touching the validation again.
+
+### 1. accuracy_when_explained is measured on an easier subset
+
+`engine 90.6%` is computed over the 297 members the engine explained. `baseline 86.8%` is
+computed over all 408. Those are different populations, and the engine's population is the
+easier one by construction: a member her own world flags is a member whose stress is well clear
+of the threshold, which is also a member the baseline finds easy. So the 90.6 against 86.8
+gap is not evidence of anything yet, and we must not quote it as a win.
+
+Add three blocks to the report, all on the SAME members:
+
+- `same_subset`: engine and baseline accuracy over the members the engine explained. This is
+  the only apples to apples comparison, and it is the headline number from now on.
+- `unexplained_subset`: baseline accuracy over the members the engine could not explain. The
+  engine scores 0 there by definition in threshold mode, so what matters is whether the
+  baseline does well on them. If it does, the baseline is strictly better on that slice and we
+  should say so.
+- `all_observed`: what we already report, kept so the two views can be compared.
+
+Expect `baseline` on `same_subset` to come out ABOVE its 86.8% overall figure. If it lands at
+or above the engine's 90.6%, the simulation has no measured advantage on that slice and the
+pitch has to rest on INDEPENDENT and on the mechanism instead.
+
+### 2. Observation anchored attribution, method fixed BEFORE the rerun
+
+The justification is sound and worth stating plainly: the officer OBSERVED the flag. Attribution
+exists to explain a flag, not to re predict it. Asking the engine to first reproduce a flag it
+was never going to reproduce under 15% income noise is asking the wrong question, and the
+baseline already works from observed data, so anchoring is parity rather than a favour.
+
+Method, pinned now so it cannot be tuned after seeing the result. For a member the engine's own
+world does not flag, every `flagged()` test in `attribution.py` is vacuously false, so replace
+each threshold crossing with a RELATIVE SHARE of the stress the engine does see. Let
+
+    s_actual  her peak stress in the engine's actual world
+    s_floor   her peak stress in the world with no shocks and every negative trend zeroed
+    s_own     her peak stress in the world holding only HER OWN causes
+    excess    s_actual - s_floor          (the stress there is to explain)
+    own_share (s_own - s_floor) / excess  (how much of it her own life accounts for)
+
+Then the same three steps, with shares in place of crossings:
+
+1. `own_share >= 0.5` means her own causes account for most of her excess stress, so she is
+   INDEX or INDEPENDENT. Split exactly as now, by whether removing her own SHOCKS takes away
+   most of that own share: yes means INDEX, no means INDEPENDENT.
+2. Otherwise TRANSMITTED. The source ranking needs no change at all: `_rank_sources` already
+   ranks by drop in peak stress, not by threshold.
+3. `sole_source` becomes "removing that source alone removes at least 0.5 of `excess`", in place
+   of "unflags her".
+
+Constants: `anchored_own_share = 0.5`, `anchored_sole_share = 0.5`. Both are "most of it",
+which is the only defensible reading, and both are written down here before the run.
+
+**The residual category must survive.** If `excess < 0.01` the engine sees essentially no stress
+to explain, and that member is reported as `no_signal`, NOT given a label. An anchored mode that
+made `unexplained` vanish by construction would be rigging the comparison rather than fixing it.
+`no_signal` is the honest remainder and it should be small; if it is not, the anchoring did not
+work.
+
+Report BOTH modes side by side, threshold and anchored, on all three subsets from item 1. Run
+n=500 ONCE. Do not iterate the constants against the output.
+
+### 3. INDEPENDENT at n=23 is too small to quote as a percentage
+
+`88.9% against 65.2%` is 16 of 18 against 15 of 23. That is the most interesting result we have
+and it is currently the least supported one, so it must be reported as COUNTS at n=500, with the
+percentage secondary. At n=500 expect roughly 115 INDEPENDENT members, which is enough to quote,
+but keep the counts visible next to every percentage in the report so nobody reads a headline
+percentage off a denominator of 18 again.
+
+### 4. Timebox, and what to do if it does not work
+
+Items 1 and 2 together get 45 MINUTES tomorrow, no more. Item 1 is arithmetic over rows we
+already have and should take about 10 of it; item 2 is a second labelling path in
+`attribution.py` behind a flag, which is the risky part. If the 45 minutes run out, ship item 1
+alone: the same subset comparison is worth more than a half finished anchored mode, because it
+tells us whether there is anything to claim.
+
+If the anchored mode does NOT beat the baseline on the same subset, say so in the report and in
+the video, and lead with the MECHANISM instead of a percentage: the counterfactual, the two
+worlds view, the explanation path, the smallest fix, and the INDEPENDENT case that a spreadsheet
+rule gets wrong for a reason anyone can see. That story does not need the engine to win a
+benchmark, and a judge who catches us overselling a benchmark will not believe the mechanism
+either.
+
 ## Handy while working
 
 ```
