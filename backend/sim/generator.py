@@ -13,16 +13,22 @@ import numpy as np
 
 from sim.params import DEFAULT, Params
 
-# Synthetic names. First x last gives 300 unique combinations, enough for a 40 kendra
-# branch at 5 members each with room to spare.
+# Synthetic names, common in Karnataka (the demo branch is Davanagere). First x last gives
+# 300 unique combinations, enough for a 40 kendra branch at 5 members each with room to spare.
+#
+# THE SIZES ARE LOAD BEARING: 25 first names and 12 surnames. Names are picked by
+# `rng.choice(len(name_pairs), ...)` BEFORE every income, buffer and loan draw, so a list of
+# a different length would shift every later random number and silently change the whole
+# simulation. Swapping a name at the same position changes only the string, and
+# tests/test_names.py proves the story is otherwise identical.
 FIRST_NAMES = (
-    "Lakshmi", "Sunita", "Meena", "Radha", "Kavita", "Anita", "Savita", "Pushpa",
-    "Rekha", "Geeta", "Sarita", "Mamta", "Usha", "Nirmala", "Shanti", "Kamala",
-    "Vimla", "Asha", "Prema", "Sudha", "Rani", "Jyoti", "Manju", "Babita", "Seema",
+    "Geetha", "Kavya", "Shobha", "Manjula", "Roopa", "Meena", "Suma", "Bhagya",
+    "Pushpa", "Rekha", "Sudha", "Lakshmi", "Asha", "Nirmala", "Shanthi", "Savitha",
+    "Prema", "Usha", "Jyothi", "Vani", "Latha", "Pavithra", "Rathna", "Hema", "Bharathi",
 )
 LAST_NAMES = (
-    "Devi", "Kumari", "Bai", "Yadav", "Mahato", "Oraon", "Singh",
-    "Murmu", "Hansda", "Kisku", "Tudu", "Soren",
+    "Shetty", "Rao", "Naik", "Patil", "Hegde", "Reddy", "Kulkarni",
+    "Bhat", "Kamath", "Gowda", "Nayak", "Poojari",
 )
 
 # Members on the same source take a shock together: that is the correlated channel.

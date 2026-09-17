@@ -408,17 +408,25 @@ marginality. If none of the three works, say so in the video rather than moving 
   happens to record, with singular and plural handled.
 - **Section 7** now says "She needs restructuring, not a moratorium", and points at the ranked
   fix for her when one exists (option 2, cut Anita Kisku's installment by 25%).
-- **NOT DONE, needs a decision: Karnataka setting.** Name selection consumes the generator's
-  RNG (`rng.choice(len(name_pairs), size=n_members, replace=False)` runs before every income,
-  buffer and loan draw), which was the stop condition. Scratch check, not committed: with lists
-  of the SAME sizes (25 first names, 12 last names) the whole `build_story()` output is identical
-  once full names are mapped to member ids, and every weekly state matches. A list of a
-  different size would change which indices are drawn and could shift every later draw. Two
-  safe options: (1) swap to same size lists and pin a test that states and events are unchanged;
-  (2) decouple names from the RNG (for example a separate `default_rng(seed + 1)` for names),
-  which changes names once but can never touch physics again. The branch label stays
-  "Ranchi branch" until then, because "Davanagere" next to Jharkhand surnames would be worse
-  than either.
+- **Karnataka setting, DONE** as a same size, same position swap of the name lists (25 first
+  names, 12 surnames), branch "Davanagere branch". `tests/test_names.py` rebuilds the whole story
+  with the old lists and requires states, event log, attribution, stability, R, smallest fix
+  and the officer note to be identical once full names are mapped to member ids. Every badge
+  and rupee figure in this file is unchanged; only the names are.
+
+  **Old name -> new name, for reading older sections of this file:**
+
+  | id | before | now |
+  | --- | --- | --- |
+  | m010 | Mamta Kisku (index) | Lakshmi Gowda |
+  | m011 | Kamala Murmu | Savitha Bhat |
+  | m012 | Rani Kisku | Latha Gowda |
+  | m014 | Kavita Hansda | Roopa Kamath |
+  | m002 | Anita Kisku (independent) | Meena Gowda |
+  | m004 | Savita Bai | Suma Naik |
+
+  Watch in the video: three of the six flagged members share the surname Gowda (it took
+  Kisku's position, which was common in the old roster). Harmless, but say first names.
 
 ## Frontend
 
