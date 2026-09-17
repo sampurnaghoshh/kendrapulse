@@ -21,6 +21,7 @@ export default function ExplanationCard({
   selected,
   whatIfOn,
   onToggleWhatIf,
+  onSideBySide,
   onOpenFix,
   onSelect,
   onClose,
@@ -57,7 +58,14 @@ export default function ExplanationCard({
           <StabilityBadge stability={attribution.stability} />
           <MatchingFix snapshot={snapshot} member={member} week={week} onOpenFix={onOpenFix} />
           {snapshot.counterfactual_worlds[member.id] && (
-            <WhatIf snapshot={snapshot} member={member} week={week} on={whatIfOn} onToggle={onToggleWhatIf} />
+            <WhatIf
+              snapshot={snapshot}
+              member={member}
+              week={week}
+              on={whatIfOn}
+              onToggle={onToggleWhatIf}
+              onSideBySide={onSideBySide}
+            />
           )}
         </>
       ) : (
@@ -69,17 +77,23 @@ export default function ExplanationCard({
 
 // The toggle swaps the graph into this member's counterfactual world. The line under it is
 // read from that world's own ring data at the current week, so it tracks the slider.
-function WhatIf({ snapshot, member, week, on, onToggle }) {
+// "Side by side" opens the same world next to reality instead of in place of it.
+function WhatIf({ snapshot, member, week, on, onToggle, onSideBySide }) {
   const world = counterfactualWorld(snapshot, member.id)
   const flaggedThere = world.everFlagged[member.id][week - 1]
   const name = firstName(member)
   return (
     <div className="whatif" onClick={(ev) => ev.stopPropagation()}>
-      <label className="whatif-toggle">
-        <input type="checkbox" role="switch" checked={on} onChange={onToggle} />
-        <span className="switch" aria-hidden="true" />
-        What if
-      </label>
+      <div className="whatif-row">
+        <label className="whatif-toggle">
+          <input type="checkbox" role="switch" checked={on} onChange={onToggle} />
+          <span className="switch" aria-hidden="true" />
+          What if
+        </label>
+        <button className="fix-button secondary side-by-side" onClick={onSideBySide}>
+          Side by side
+        </button>
+      </div>
       {on && (
         <p className="whatif-result">
           In this world {name} {flaggedThere ? `is flagged by week ${week}` : `is not flagged up to week ${week}`}.

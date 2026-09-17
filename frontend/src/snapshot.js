@@ -73,6 +73,19 @@ export function kendraGeometry(snapshot) {
   })
 }
 
+// A viewBox around one kendra, for the zoomed split screen panels. Padding leaves room for
+// the kendra label and R chip above (drawn at top minus 66) and first names below the nodes.
+export function kendraViewBox(snapshot, kendraId) {
+  const points = snapshot.scenario.kendras[kendraId].map((id) => snapshot.scenario.layout[id])
+  const xs = points.map((p) => p[0])
+  const ys = points.map((p) => p[1])
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2
+  const halfWidth = Math.max(170, (Math.max(...xs) - Math.min(...xs)) / 2 + 90)
+  const top = Math.min(...ys) - 100
+  const bottom = Math.max(...ys) + 52
+  return `${cx - halfWidth} ${top} ${2 * halfWidth} ${bottom - top}`
+}
+
 // A "world" is what the graph draws: weekly member states plus the persistent ring.
 // Reality is the actual run. What if worlds and fix replays use the same shape and set
 // `alternate`, so the app can insist only one alternate world is ever on screen.

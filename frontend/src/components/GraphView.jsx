@@ -1,4 +1,4 @@
-import { edgeKey, firstName, kendraGeometry, kendraLabel, rChipText } from '../snapshot.js'
+import { edgeKey, firstName, kendraGeometry, kendraLabel, kendraViewBox, rChipText } from '../snapshot.js'
 
 // Layout coordinates come from the backend, so every view draws members in the same place.
 // The viewBox is fixed around that layout (plus room for labels) rather than measured, so
@@ -9,17 +9,24 @@ const NODE_R = 20
 // Status must not rely on colour alone: amber carries one mark, red two.
 const STATUS_MARK = { green: '', amber: '!', red: '!!' }
 
-export default function GraphView({ snapshot, world, week, selectedId, onSelect }) {
-  const { layout, edges, members } = snapshot.scenario
+// `focusKendra` (optional) draws only that kendra, zoomed in; the split screen uses it so five
+// names stay readable in a half width panel. `flashId` (optional) briefly pulses one node.
+export default function GraphView({ snapshot, world, week, selectedId, onSelect, focusKendra, flashId }) {
+  const { layout, edges } = snapshot.scenario
   const states = world.weeks[String(week)]
   const pulsing = new Set(world.coverEdges(week))
+  const inFocus = (id) => !focusKendra || snapshot.scenario.kendras[focusKendra].includes(id)
+  const members = snapshot.scenario.members.filter((m) => inFocus(m.id))
 
   // Only guarantee edges are drawn: they are the channel cover travels along. Shared income
-  // and shared lender links cross the whole branch and would bury the picture.
-  const guaranteeEdges = edges.filter((e) => e.type === 'guarantee')
+  // and shared lender links cross the whole branch and would bury the picture. Guarantee
+  // edges never leave a kendra, so filtering on one end is enough in focus mode.
+  const guaranteeEdges = edges.filter((e) => e.type === 'guarantee' && inFocus(e.from_id))
+  const viewBox = focusKendra ? kendraViewBox(snapshot, focusKendra) : VIEWBOX
+  const label = focusKendra ? `${kendraLabel(focusKendra)} in week ${week}` : `Branch network in week ${week}`
 
   return (
-    <svg className="graph" viewBox={VIEWBOX} role="img" aria-label={`Branch network in week ${week}`}>
+    <svg className="graph" viewBox={viewBox} role="img" aria-label={label}>
       <g className="edges">
         {guaranteeEdges.map((e) => {
           const [x1, y1] = layout[e.from_id]
@@ -50,14 +57,16 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
       </g>
 
       <g className="kendras">
-        {kendraGeometry(snapshot).map(({ kendraId, cx, top }) => (
-          <g key={kendraId}>
-            <text className="kendra-label" x={cx} y={top - 66} textAnchor="middle">
-              {kendraLabel(kendraId)}
-            </text>
-            <RChip x={cx} y={top - 44} text={rChipText(snapshot, kendraId, week, world)} />
-          </g>
-        ))}
+        {kendraGeometry(snapshot)
+          .filter(({ kendraId }) => !focusKendra || kendraId === focusKendra)
+          .map(({ kendraId, cx, top }) => (
+            <g key={kendraId}>
+              <text className="kendra-label" x={cx} y={top - 66} textAnchor="middle">
+                {kendraLabel(kendraId)}
+              </text>
+              <RChip x={cx} y={top - 44} text={rChipText(snapshot, kendraId, week, world)} />
+            </g>
+          ))}
       </g>
 
       <g className="nodes">
@@ -79,6 +88,8 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
               onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(m.id)}
             >
               {selected && <circle className="node-select" r={NODE_R + 13} />}
+              {/* Keyed by week so the flash plays again if the slider comes back to it. */}
+              {m.id === flashId && <circle key={`flash@${week}`} className="node-flash" r={NODE_R + 13} />}
               {ringed && <circle className="node-ring" r={NODE_R + 6} />}
               <circle className="node-body" r={NODE_R} />
               <text className="node-mark" y={6} textAnchor="middle">

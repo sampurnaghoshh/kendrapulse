@@ -752,3 +752,225 @@ body {
     margin-right: 6px;
   }
 }
+
+/* Side by side: the What if row puts the switch and the button on one line. */
+.whatif-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.world-banner .back-to-reality + .back-to-reality {
+  font-weight: 600;
+}
+
+/* Split screen: the side panel shrinks to a strip so both graphs get the width. */
+.app.is-split {
+  grid-template-columns: minmax(0, 1fr) 36px;
+}
+
+.side-panel.is-strip {
+  display: flex;
+  justify-content: center;
+  padding: 14px 0;
+  overflow: hidden;
+}
+
+.strip-text {
+  writing-mode: vertical-rl;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.split-pane {
+  padding: 6px 12px 4px;
+}
+
+.two-worlds {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.split-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.split-heading {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.split-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.split-switch {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.split-close {
+  padding: 5px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.split-panels {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.split-panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+/* The right world wears the same accent frame as the single graph's What if world. */
+.split-panel.is-right {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: #eef1f4;
+}
+
+.split-title {
+  margin: 0;
+  padding: 7px 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.split-panel.is-right .split-title {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px 6px 0 0;
+}
+
+.split-panel .node-name {
+  stroke: var(--surface);
+}
+
+.split-panel.is-right .node-name {
+  stroke: #eef1f4;
+}
+
+/* The divergence flash: two quick rings out from the member, then gone. */
+.node-flash {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  pointer-events: none;
+  animation: node-flash 900ms ease-out 2 forwards;
+}
+
+@keyframes node-flash {
+  0% {
+    r: 22px;
+    opacity: 1;
+  }
+  100% {
+    r: 58px;
+    opacity: 0;
+  }
+}
+
+.divergence-caption {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.divergence-caption.is-diverged {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.split-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.split-foot .legend {
+  padding-top: 4px;
+}
+
+.split-transmitted {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.split-source {
+  margin: 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The badge sits inline here: two short rows, no footnote, so the graphs keep the height. */
+.split-transmitted .stability-badge {
+  margin-top: 0;
+  padding: 4px 10px;
+}
+
+.split-transmitted .stability-num {
+  min-width: 52px;
+  font-size: 15px;
+}
+
+.split-transmitted .stability-what {
+  font-size: 13px;
+}
+
+.split-transmitted .stability-note {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .app.is-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .side-panel.is-strip {
+    display: none;
+  }
+
+  .split-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .split-panels,
+  .split-foot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .split-panel .graph {
+    aspect-ratio: 4 / 3;
+  }
+}

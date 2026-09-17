@@ -3,6 +3,7 @@ import GraphView, { GraphLegend } from './components/GraphView.jsx'
 import ExplanationCard from './components/ExplanationCard.jsx'
 import OfficerNote from './components/OfficerNote.jsx'
 import SmallestFixPanel from './components/SmallestFixPanel.jsx'
+import TwoWorldsView from './components/TwoWorldsView.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
 import {
   attributionFor,
@@ -37,6 +38,9 @@ export default function App() {
   // A single state value, so a What if and an applied fix can never both be showing.
   const [alternate, setAlternate] = useState(null)
   const [fixOpen, setFixOpen] = useState(false)
+  // Side by side view, same shape as `alternate`. Kept separate so opening and closing it
+  // leaves the single graph exactly as it was (What if, applied fix or reality).
+  const [split, setSplit] = useState(null)
 
   const panelRef = useRef(null)
   const fixRef = useRef(null)
@@ -52,6 +56,31 @@ export default function App() {
     if (alternate.kind === 'whatif') return counterfactualWorld(snapshot, alternate.id)
     return fixWorld(snapshot, alternate.rank)
   }, [snapshot, alternate, reality])
+
+  // The two worlds for the side by side view: reality on the left in both uses.
+  const splitView = useMemo(() => {
+    if (!snapshot || !split) return null
+    if (split.kind === 'whatif') {
+      const right = counterfactualWorld(snapshot, split.id)
+      return {
+        left: reality,
+        right,
+        leftTitle: 'Reality',
+        rightTitle: right.title,
+        rightPhrase: `in the ${lowerFirst(right.title)}`,
+        targetId: split.id,
+      }
+    }
+    const right = fixWorld(snapshot, split.rank)
+    return {
+      left: reality,
+      right,
+      leftTitle: 'Without the fix',
+      rightTitle: right.title,
+      rightPhrase: lowerFirst(right.title),
+      targetId: right.fix.intervention.member_id,
+    }
+  }, [snapshot, split, reality])
 
   const whatIfId = alternate?.kind === 'whatif' ? alternate.id : null
   const appliedRank = alternate?.kind === 'fix' ? alternate.rank : null
@@ -124,71 +153,118 @@ export default function App() {
   if (!snapshot) return <p className="loading">Loading the branch</p>
 
   const byId = membersById(snapshot)
+  // The split screen follows the selected member; without one it falls back to whoever the
+  // world is about (the What if member, or the member the fix is aimed at).
+  const subjectId = splitView ? (selectedId ?? splitView.targetId) : null
+  const subjectCard = cards.find((c) => c.id === subjectId)
 
   return (
-    <div className="app">
+    <div className={`app${splitView ? ' is-split' : ''}`}>
       <header className="app-header">
         <h1>KendraPulse</h1>
         <span className="branch">Davanagere branch</span>
         <span className="private-tag">Visible to the loan officer only</span>
       </header>
 
-      <main className={`graph-pane${world.alternate ? ' is-whatif' : ''}`}>
-        {world.alternate && (
-          <div className="world-banner" role="status">
-            <span className="world-title">{world.title}</span>
-            <span className="world-note">Same weeks, same dice, same positions</span>
-            <button className="back-to-reality" onClick={() => setAlternate(null)}>
-              Back to reality
-            </button>
-          </div>
-        )}
-        <GraphView
-          snapshot={snapshot}
-          world={world}
-          week={week}
-          selectedId={selectedId}
-          onSelect={selectMember}
-        />
-        <RupeeLine snapshot={snapshot} reality={reality} world={world} week={week} />
-        <GraphLegend showProtected={Boolean(world.fix)} />
-      </main>
-
-      <aside className="side-panel" ref={panelRef}>
-        <OfficerNote snapshot={snapshot} week={week} />
-        {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
-        {cards.map((card) => (
-          <ExplanationCard
-            key={card.id}
+      {splitView ? (
+        <main className="graph-pane split-pane">
+          <TwoWorldsView
             snapshot={snapshot}
-            member={byId[card.id]}
+            leftWorld={splitView.left}
+            rightWorld={splitView.right}
+            leftTitle={splitView.leftTitle}
+            rightTitle={splitView.rightTitle}
+            rightPhrase={splitView.rightPhrase}
+            focusKendra={byId[subjectId].kendra_id}
             week={week}
-            revealedWeek={card.revealedWeek}
-            selected={card.id === selectedId}
-            whatIfOn={card.id === whatIfId}
-            onToggleWhatIf={() => toggleWhatIf(card.id)}
-            onOpenFix={openFixes}
-            onSelect={() => setSelectedId(card.id)}
-            onClose={() => closeCard(card.id)}
+            horizon={horizon}
+            subjectId={subjectId}
+            selectedId={selectedId}
+            subjectRevealed={Boolean(subjectCard && isRevealed(subjectCard))}
+            onSelect={selectMember}
+            onClose={() => setSplit(null)}
           />
-        ))}
-        <SmallestFixPanel
-          ref={fixRef}
-          snapshot={snapshot}
-          week={week}
-          open={fixOpen}
-          appliedRank={appliedRank}
-          onOpen={() => openFixes()}
-          onApply={(rank) => setAlternate({ kind: 'fix', rank })}
-          onBack={() => setAlternate(null)}
-        />
-      </aside>
+        </main>
+      ) : (
+        <main className={`graph-pane${world.alternate ? ' is-whatif' : ''}`}>
+          {world.alternate && (
+            <div className="world-banner" role="status">
+              <span className="world-title">{world.title}</span>
+              <span className="world-note">Same weeks, same dice, same positions</span>
+              <button className="back-to-reality" onClick={() => setAlternate(null)}>
+                Back to reality
+              </button>
+              {world.fix && (
+                <button className="back-to-reality" onClick={() => setSplit(alternate)}>
+                  Side by side
+                </button>
+              )}
+            </div>
+          )}
+          <GraphView
+            snapshot={snapshot}
+            world={world}
+            week={week}
+            selectedId={selectedId}
+            onSelect={selectMember}
+          />
+          <RupeeLine snapshot={snapshot} reality={reality} world={world} week={week} />
+          <GraphLegend showProtected={Boolean(world.fix)} />
+        </main>
+      )}
+
+      {splitView ? (
+        // Collapsed to a narrow strip so both graphs get the width. Cards keep their state
+        // in the app and come back unchanged on Close.
+        <aside className="side-panel is-strip" aria-label="Side panel hidden while side by side">
+          <span className="strip-text">Cards return on Close</span>
+        </aside>
+      ) : (
+        <aside className="side-panel" ref={panelRef}>
+          <OfficerNote snapshot={snapshot} week={week} />
+          {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
+          {cards.map((card) => (
+            <ExplanationCard
+              key={card.id}
+              snapshot={snapshot}
+              member={byId[card.id]}
+              week={week}
+              revealedWeek={card.revealedWeek}
+              selected={card.id === selectedId}
+              whatIfOn={card.id === whatIfId}
+              onToggleWhatIf={() => toggleWhatIf(card.id)}
+              onSideBySide={() => {
+                setSelectedId(card.id)
+                setSplit({ kind: 'whatif', id: card.id })
+              }}
+              onOpenFix={openFixes}
+              onSelect={() => setSelectedId(card.id)}
+              onClose={() => closeCard(card.id)}
+            />
+          ))}
+          <SmallestFixPanel
+            ref={fixRef}
+            snapshot={snapshot}
+            week={week}
+            open={fixOpen}
+            appliedRank={appliedRank}
+            onOpen={() => openFixes()}
+            onApply={(rank) => setAlternate({ kind: 'fix', rank })}
+            onBack={() => setAlternate(null)}
+          />
+        </aside>
+      )}
 
       <footer className="slider-bar">
         <WeekSlider week={week} weeks={horizon} playing={playing} onWeek={setWeek} onTogglePlay={togglePlay} />
       </footer>
     </div>
   )
+}
+
+// "World without Lakshmi's illness" reads as "world without Lakshmi's illness" mid sentence.
+function lowerFirst(text) {
+  return text[0].toLowerCase() + text.slice(1)
 }
 
 // Loans on members flagged at some point so far. With a fix applied it compares the two
