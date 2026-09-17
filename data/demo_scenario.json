@@ -23,6 +23,13 @@
   "decision_week": 4,
   "decision_week_why": "The illness starts in week 3, the officer hears about it at that meeting and can act by week 4. Acting in week 1 would be clairvoyant, and a fix from week 9 or later could not be judged inside the horizon.",
 
+  "officer_note": {
+    "member_id": "m010",
+    "text": "{name} is unwell and mostly off work since last week. She paid her installment in full today, but out of her savings.",
+    "claims_paid_in_full": true,
+    "why": "Read out at the decision week meeting. It must match the run: through week 4 the index member pays in full with no cover and no arrears, while her savings fall by more than four fifths. Her first short payment is in week 5. build_story recomputes that, and a test fails if the note stops being true."
+  },
+
   "stability": {
     "seed": 1,
     "n_runs": 50

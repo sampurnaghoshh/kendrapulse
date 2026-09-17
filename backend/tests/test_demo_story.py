@@ -297,3 +297,36 @@ def test_member_overrides_need_a_reason_and_a_real_field():
         apply_member_overrides(scenario, [{"member_id": "m011", "luck": 1.0, "reason": "x"}])
     with pytest.raises(ValueError):
         apply_member_overrides(scenario, [{"member_id": "m011", "id": "m999", "reason": "x"}])
+
+
+# ------------------------------------------------------------------------------------
+# The officer's note and the lender freeze
+# ------------------------------------------------------------------------------------
+
+
+def test_the_officer_note_matches_the_run(story):
+    """The note is written by hand in the config, so the run has to back it up. If a retuned
+    scenario makes her pay short before the meeting, the note must be rewritten."""
+    note = story["officer_note"]
+    assert note["week"] == story["smallest_fix"]["decision_week"]
+    assert note["claims_paid_in_full"] == note["paid_in_full_so_far"]
+    if note["claims_paid_in_full"]:
+        # "but out of her savings": she must actually have spent them.
+        assert note["buffer_at_note"] < note["buffer_start"]
+    name = next(m["name"] for m in story["scenario"]["members"] if m["id"] == note["member_id"])
+    assert note["text"].startswith(name)
+    for dash in DASHES:
+        assert dash not in note["text"]
+
+
+def test_lender_freezes_carry_the_kendra_they_came_from(story):
+    """The freeze line names a kendra, never a person, so every freeze event needs one."""
+    kendra_of = {m["id"]: m["kendra_id"] for m in story["scenario"]["members"]}
+    freezes = [
+        e for week in story["actual"]["timeline"] for e in week["events"]
+        if e["channel"] == "shared_lender"
+    ]
+    assert freezes
+    for event in freezes:
+        assert event["from_kendra_id"] == kendra_of[event["from_id"]]
+        assert kendra_of[event["to_id"]] != event["from_kendra_id"]

@@ -190,7 +190,8 @@ def fix_sentence(scenario, entry):
     return (
         f"{entry['intervention'].describe(scenario)}. "
         f"Protects {len(entry['members_protected'])} "
-        f"{'member' if len(entry['members_protected']) == 1 else 'members'} ({names}). "
+        f"{'member' if len(entry['members_protected']) == 1 else 'members'} ({names}) who "
+        "would otherwise be flagged at some point. "
         f"Costs the lender {format_rs(entry['lender_cost'])}. "
         f"{moved_out_of_stress(entry['rupees_at_risk_avoided'])}."
     )
@@ -278,6 +279,7 @@ def _timeline(scenario, run):
                 "channel": e["channel"],
                 "from_id": e["from_id"],
                 "from_name": scenario.member(e["from_id"]).name,
+                "from_kendra_id": scenario.member(e["from_id"]).kendra_id,
                 "to_id": e["to_id"],
                 "to_name": scenario.member(e["to_id"]).name,
                 "amount": e["amount"],
@@ -451,6 +453,26 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
             "weeks": _weeks(best["run"], scenario),
         }
 
+    # 6b. The officer's note at the decision week. The text is an INPUT written in the config;
+    # the fact it asserts is recomputed here from the run, so a retuned scenario that made the
+    # note untrue fails a test instead of quietly narrating something that did not happen.
+    note_config = config["officer_note"]
+    note_member = scenario.member(note_config["member_id"])
+    paid_short = any(
+        actual.states[w][note_member.id]["unpaid"] > 0
+        or actual.states[w][note_member.id]["cover_received"] > 0
+        for w in range(1, decision_week + 1)
+    )
+    officer_note = {
+        "week": decision_week,
+        "member_id": note_member.id,
+        "text": note_config["text"].format(name=note_member.name),
+        "claims_paid_in_full": note_config["claims_paid_in_full"],
+        "paid_in_full_so_far": not paid_short,
+        "buffer_start": note_member.savings_buffer,
+        "buffer_at_note": actual.states[decision_week][note_member.id]["buffer"],
+    }
+
     # 7. The case that is nobody's fault and nobody's contagion.
     independent = [r for r in attribution if r["label"] == INDEPENDENT]
 
@@ -501,6 +523,7 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
         "attribution": attribution,
         "r": rows,
         "shocked_kendra": shocked_kendra,
+        "officer_note": officer_note,
         "smallest_fix": {"decision_week": decision_week, "ranked": ranked, "applied": applied},
         "independent_cases": [r["member_id"] for r in independent],
         "build_seconds": time.perf_counter() - started,

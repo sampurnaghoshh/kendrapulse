@@ -108,16 +108,23 @@ def week_by_week(story):
         frozen = [e for e in events if e["channel"] == "shared_lender"]
         if frozen:
             total = sum(e["amount"] for e in frozen)
-            origins = ", ".join(sorted({e["from_name"] for e in frozen}))
+            # The freeze is a lender's decision about a GROUP whose arrears passed a
+            # threshold, so it is named by the kendra, never by the member the log happens to
+            # record as its worst payer. Naming a person here would read as blame.
+            kendras = " and ".join(sorted({e["from_kendra_id"] for e in frozen}))
+            one = len(frozen) == 1
             line(
-                f"a lender freezes top ups over arrears traced to {origins}: "
-                f"{len(frozen)} {'member' if len(frozen) == 1 else 'members'} in other kendras lose {format_rs(total)} of savings",
+                f"a lender freezes top ups over arrears in {kendras}: "
+                f"{len(frozen)} {'member' if one else 'members'} in other kendras "
+                f"{'loses' if one else 'lose'} {format_rs(total)} of savings",
                 indent=6,
             )
     line()
-    line(f"Flagged by week {story['params']['horizon_weeks']}: "
+    horizon = story["params"]["horizon_weeks"]
+    line(f"Flagged at some point in these {horizon} weeks: "
          f"{', '.join(story['actual']['flagged'])}")
-    line(f"{story['actual']['rupees_at_risk_text']} of loans now sitting on stressed borrowers.")
+    line(f"{story['actual']['rupees_at_risk_text']} of loans on members flagged at some point "
+         f"in these {horizon} weeks.")
 
 
 def attribution(story):
@@ -178,6 +185,9 @@ def r_progression(story):
 
 def smallest_fix(story):
     heading(6, "The smallest fix that stops the spread")
+    note = story["officer_note"]
+    line(f"Week {note['week']} kendra meeting, officer's note: {note['text']}")
+    line()
     fix = story["smallest_fix"]
     line(f"The officer decides in week {fix['decision_week']}. Every candidate is replayed on the")
     line("same dice as reality, and any fix that would newly flag somebody is thrown out.")
@@ -194,12 +204,16 @@ def smallest_fix(story):
     line("-" * WIDTH)
     line(f"Applying the top one: {applied['description']}")
     line()
-    line(f"flagged before   {', '.join(applied['flagged_before'])}", indent=4)
-    line(f"flagged after    {', '.join(applied['flagged_after'])}", indent=4)
-    line(f"protected        {', '.join(applied['members_protected'])}", indent=4)
+    # Every count and rupee figure below is about members flagged AT SOME POINT in the
+    # horizon, not members flagged at the end of it, so the header says so once.
+    line(f"flagged at some point in these {story['params']['horizon_weeks']} weeks:", indent=4)
+    line(f"without the fix   {', '.join(applied['flagged_before'])}", indent=6)
+    line(f"with the fix      {', '.join(applied['flagged_after'])}", indent=6)
+    line(f"protected         {', '.join(applied['members_protected'])}", indent=6)
     line()
-    line(f"at risk before   {format_rs(applied['rupees_at_risk_before'])}", indent=4)
-    line(f"at risk after    {format_rs(applied['rupees_at_risk_after'])}", indent=4)
+    line("loans on members flagged at some point:", indent=4)
+    line(f"without the fix   {format_rs(applied['rupees_at_risk_before'])}", indent=6)
+    line(f"with the fix      {format_rs(applied['rupees_at_risk_after'])}", indent=6)
     line(f"{applied['moved_text']}.", indent=4)
     line()
     before = next(r for r in story["r"] if r["kendra_id"] == story["shocked_kendra"])
@@ -240,8 +254,16 @@ def independent_case(story):
         for sentence in onward:
             line(f"and it did reach somebody: {sentence}", indent=8)
         line()
-    line("A moratorium would not help her, because there is no shock to wait out. She needs")
-    line("an income conversation, and the label is what says so.")
+    line("She needs restructuring, not a moratorium, because there is no shock to wait out.")
+    for record in others:
+        match = next(
+            (entry for entry in story["smallest_fix"]["ranked"]
+             if entry["intervention"]["member_id"] == record["member_id"]),
+            None,
+        )
+        if match:
+            line(f"The smallest fix list already has one for {record['name']}: option "
+                 f"{match['rank']}, {match['description'][0].lower()}{match['description'][1:]}.")
 
 
 def main():

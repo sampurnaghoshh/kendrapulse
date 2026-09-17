@@ -393,6 +393,41 @@ marginality. If none of the three works, say so in the video rather than moving 
 - Deferred on purpose, pick up only if there is time: `scheme_linkage`, a manual intervention
   sandbox, and provoking a genuine cross kendra case.
 
+## Story consistency pass
+
+- **Wording**: every ever flagged count now says "at some point in these 12 weeks" (the flagged
+  list, the Rs figure, the before and after block, and each ranked fix's "who would otherwise be
+  flagged at some point"). A member who was amber for one week in week 5 is green by week 12,
+  and "now sitting on stressed borrowers" claimed otherwise.
+- **Officer's note** at the decision week lives in `data/demo_scenario.json` (`officer_note`,
+  with `{name}` filled from the roster) and is printed at the top of section 6. It says she
+  paid in full, out of savings. The run backs it: through week 4 Mamta has no arrears and no
+  cover, and her savings fall from Rs 10,147 to Rs 1,757; her first short week is week 5.
+  `build_story()` recomputes `paid_in_full_so_far` and a test fails if the note stops being true.
+- **Lender freeze lines** name the kendra ("arrears in k2"), not the worst payer the event log
+  happens to record, with singular and plural handled.
+- **Section 7** now says "She needs restructuring, not a moratorium", and points at the ranked
+  fix for her when one exists (option 2, cut Anita Kisku's installment by 25%).
+- **NOT DONE, needs a decision: Karnataka setting.** Name selection consumes the generator's
+  RNG (`rng.choice(len(name_pairs), size=n_members, replace=False)` runs before every income,
+  buffer and loan draw), which was the stop condition. Scratch check, not committed: with lists
+  of the SAME sizes (25 first names, 12 last names) the whole `build_story()` output is identical
+  once full names are mapped to member ids, and every weekly state matches. A list of a
+  different size would change which indices are drawn and could shift every later draw. Two
+  safe options: (1) swap to same size lists and pin a test that states and events are unchanged;
+  (2) decouple names from the RNG (for example a separate `default_rng(seed + 1)` for names),
+  which changes names once but can never touch physics again. The branch label stays
+  "Ranchi branch" until then, because "Davanagere" next to Jharkhand surnames would be worse
+  than either.
+
+## Frontend
+
+- Node fill = status at the current slider week.
+- A persistent ring = flagged at some point up to the slider week. Fill alone would make a
+  transmitted peer who was amber for one week vanish from the picture a week later.
+- Explanation cards persist once shown, for the same reason: the slider moving on does not
+  make the explanation untrue.
+
 ## Validation fairness
 
 The n=100 numbers above are recorded honestly but they are NOT yet a fair comparison, and this
