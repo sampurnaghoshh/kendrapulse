@@ -55,7 +55,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
             <text className="kendra-label" x={cx} y={top - 66} textAnchor="middle">
               {kendraLabel(kendraId)}
             </text>
-            <RChip x={cx} y={top - 44} text={rChipText(snapshot, kendraId, week)} />
+            <RChip x={cx} y={top - 44} text={rChipText(snapshot, kendraId, week, world)} />
           </g>
         ))}
       </g>

@@ -16,7 +16,7 @@ export default function StabilityBadge({ stability }) {
         <span className="stability-num">
           {matched} <span className="of">of {flagged}</span>
         </span>
-        <span className="stability-what">flagged reruns find the same cause</span>
+        <span className="stability-what">find the same cause</span>
       </div>
       <p className="stability-note">Each rerun uses new dice and nudges every tunable parameter.</p>
     </div>

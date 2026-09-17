@@ -76,6 +76,59 @@ function coverEdgesFromLog(snapshot, week) {
     .map((e) => edgeKey(e.from_id, e.to_id))
 }
 
+// A counterfactual world from the snapshot, in the same shape as reality so GraphView
+// draws it unchanged: same slider, same node positions, only the member states differ.
+export function counterfactualWorld(snapshot, memberId) {
+  const world = snapshot.counterfactual_worlds[memberId]
+  return {
+    weeks: world.weeks,
+    everFlagged: world.ever_flagged_by_week,
+    coverEdges: (week) => coverEdgesFromWeeks(snapshot, world.weeks, week),
+    counterfactual: true,
+    title: worldTitle(snapshot, memberId),
+  }
+}
+
+// Counterfactual worlds carry weekly states but no event log. Guarantee cover only flows
+// inside a kendra, so pair each member who gave cover that week with each who received it.
+// On the actual run this reproduces the event log's guarantee pairs in all 12 weeks.
+function coverEdgesFromWeeks(snapshot, weeks, week) {
+  const states = weeks[String(week)]
+  const keys = []
+  for (const ids of Object.values(snapshot.scenario.kendras)) {
+    const givers = ids.filter((id) => states[id].cover_given > 0)
+    const receivers = ids.filter((id) => states[id].cover_received > 0)
+    for (const g of givers) for (const r of receivers) if (g !== r) keys.push(edgeKey(g, r))
+  }
+  return keys
+}
+
+// Plain words for each shock type, for the banner ("World without Lakshmi's illness").
+const SHOCK_WORDS = {
+  health: 'illness',
+  crop_loss: 'crop loss',
+  job_loss: 'job loss',
+  festival_spend: 'festival spending',
+  weak_monsoon: 'weak monsoon',
+}
+
+function worldTitle(snapshot, memberId) {
+  const world = snapshot.counterfactual_worlds[memberId]
+  const attribution = attributionFor(snapshot, memberId)
+  if (world.kind === 'without_source' && world.removed_member_id && attribution) {
+    const source = membersById(snapshot)[world.removed_member_id]
+    let cause = 'trouble'
+    if (attribution.source_cause === 'trend') cause = 'slipping income'
+    if (attribution.source_cause === 'shock') {
+      const shock = snapshot.shock.shocks.find((s) => s.member_id === source.id)
+      if (shock) cause = SHOCK_WORDS[shock.type] ?? 'shock'
+    }
+    return `World without ${firstName(source)}'s ${cause}`
+  }
+  // Other kinds keep the backend's own title, rewritten for the screen.
+  return displayText(snapshot, world.title).replace(/^The world/, 'World')
+}
+
 // Order independent key, so an edge stored m010 to m011 matches cover paid m011 to m010.
 export function edgeKey(a, b) {
   return a < b ? `${a}|${b}` : `${b}|${a}`
@@ -83,8 +136,17 @@ export function edgeKey(a, b) {
 
 // The R chip always names its kind. R live exists only once the kendra has an index case
 // (null before that), so until then the chip shows R potential, as CLAUDE.md specifies.
-export function rChipText(snapshot, kendraId, week) {
+//
+// A counterfactual world has no R live in the snapshot. R potential is a property of the
+// network, so it still holds for a kendra with nobody flagged in that world. A kendra with a
+// flag there would need attribution rerun inside that world, so the chip says it is not
+// scored rather than borrowing reality's number.
+export function rChipText(snapshot, kendraId, week, world) {
   const r = snapshot.r.find((row) => row.kendra_id === kendraId)
+  if (world?.counterfactual) {
+    const flagged = snapshot.scenario.kendras[kendraId].some((id) => world.everFlagged[id][week - 1])
+    return flagged ? 'R live not scored here' : `R potential ${r.r_potential.toFixed(2)}`
+  }
   const live = r.r_live_by_week[week - 1]
   if (live === null) return `R potential ${r.r_potential.toFixed(2)}`
   return `R live ${live.toFixed(2)}`

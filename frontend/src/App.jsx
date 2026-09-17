@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import GraphView, { GraphLegend } from './components/GraphView.jsx'
 import ExplanationCard from './components/ExplanationCard.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
-import { attributionFor, loadSnapshot, membersById, realityWorld } from './snapshot.js'
+import { attributionFor, counterfactualWorld, loadSnapshot, membersById, realityWorld } from './snapshot.js'
 
 // About 700 ms per week: slow enough to read a colour change, fast enough for a video.
 const MS_PER_WEEK = 700
@@ -22,6 +22,8 @@ export default function App() {
   // Explanation cards, newest first: {id, revealedWeek}. See ExplanationCard for why
   // revealedWeek only ever grows.
   const [cards, setCards] = useState([])
+  // Member whose counterfactual world the graph shows, or null for reality.
+  const [whatIfId, setWhatIfId] = useState(null)
 
   useEffect(() => {
     loadSnapshot().then(setSnapshot, (err) => setError(err.message))
@@ -29,6 +31,10 @@ export default function App() {
 
   const horizon = snapshot?.params.horizon_weeks ?? 12
   const reality = useMemo(() => snapshot && realityWorld(snapshot), [snapshot])
+  const world = useMemo(
+    () => (snapshot && whatIfId ? counterfactualWorld(snapshot, whatIfId) : reality),
+    [snapshot, whatIfId, reality],
+  )
 
   // Advance one week per tick.
   useEffect(() => {
@@ -70,6 +76,7 @@ export default function App() {
   function closeCard(id) {
     setCards((cs) => cs.filter((c) => c.id !== id))
     if (selectedId === id) setSelectedId(null)
+    if (whatIfId === id) setWhatIfId(null)
   }
 
   function togglePlay() {
@@ -91,10 +98,19 @@ export default function App() {
         <span className="private-tag">Visible to the loan officer only</span>
       </header>
 
-      <main className="graph-pane">
+      <main className={`graph-pane${world.counterfactual ? ' is-whatif' : ''}`}>
+        {world.counterfactual && (
+          <div className="world-banner" role="status">
+            <span className="world-title">{world.title}</span>
+            <span className="world-note">Same weeks, same dice, same positions</span>
+            <button className="back-to-reality" onClick={() => setWhatIfId(null)}>
+              Back to reality
+            </button>
+          </div>
+        )}
         <GraphView
           snapshot={snapshot}
-          world={reality}
+          world={world}
           week={week}
           selectedId={selectedId}
           onSelect={selectMember}
@@ -112,6 +128,8 @@ export default function App() {
             week={week}
             revealedWeek={card.revealedWeek}
             selected={card.id === selectedId}
+            whatIfOn={card.id === whatIfId}
+            onToggleWhatIf={() => setWhatIfId((current) => (current === card.id ? null : card.id))}
             onSelect={() => setSelectedId(card.id)}
             onClose={() => closeCard(card.id)}
           />
