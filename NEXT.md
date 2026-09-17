@@ -20,6 +20,9 @@ Running note of where the build is. Update at the end of every phase.
 - **Two part stability badge**: "flagged in 23 of 50 reruns; same cause in 22 of those".
 - **Phase 4 part 1** `validation/cause_recovery.py` + `scripts/run_validation.py`, run at
   n=100. 163 tests pass. `reality_check.py` is still to do.
+- **Hero case tuning (timeboxed, TARGET NOT MET)**: `scripts/tune_demo.py`, shock now 6 weeks
+  from week 3, decision week 4, no member overrides. 169 tests pass. See "Hero case tuning:
+  what the badges are" below; the video must quote those numbers, not the target.
 
 ## Phase 2 part 1: what attribution does now
 
@@ -215,6 +218,55 @@ The story, as it runs today:
    index case stays flagged, which is the honest shape: a lender cannot undo an illness.
 7. Anita Kisku in k0 is INDEPENDENT and her stress still reached Savita Bai in week 12.
 
+## Hero case tuning: what the badges are
+
+Target was every k2 transmitted peer flagged in at least 35 of 50 reruns with source agreement
+above 0.9. **No input in the search reached it.** What the demo now shows, exactly:
+
+| member | label | flagged | same cause | agreement | before tuning |
+| --- | --- | ---: | ---: | ---: | --- |
+| Mamta Kisku m010 | INDEX | 50 of 50 | 50 | 1.00 | 50 of 50 |
+| Rani Kisku m012 | TRANSMITTED, week 5 | 27 of 50 | 27 | 1.00 | 12 of 50 |
+| Kamala Murmu m011 | TRANSMITTED, week 7 | 28 of 50 | 28 | 1.00 | 23 of 50 |
+| Kavita Hansda m014 | TRANSMITTED, week 8 | 22 of 50 | 21 | 0.95 | 12 of 50 |
+| Anita Kisku m002 | INDEPENDENT | 37 of 50 | 36 | 0.97 | 37 of 50 |
+| Savita Bai m004 | TRANSMITTED from m002, week 12 | 12 of 50 | 12 | 1.00 | 11 of 50 |
+
+Say it in the video as: "each of her neighbours went into stress in roughly half of 50
+reruns, and whenever one did, we named Mamta as the cause 95 to 100 percent of the time."
+Do not say "stable" about the transmitted cases without the first number.
+
+Inputs changed, all in `data/demo_scenario.json`: health duration 4 -> 6 (default severity kept
+at 0.65), start week 2 -> 3, decision week 3 -> 4. The story holds: all 25 green in week 1, k2
+still tied top on R potential with k4 at 1.20, only m002 and m004 flagged outside k2, m002 still
+INDEPENDENT, top fix is still "cut Mamta Kisku's installment by 50%" and protects all 3 peers
+(Rs 104 lender cost, R live 3.00 -> 0.00), the index case stays flagged.
+
+What the search found (40 shock candidates plus 16 buffer override candidates at 20 runs,
+best ones confirmed at 50):
+
+- **Severity does nothing** above 0.65. Cover is capped at `cover_capacity_share` of the peer's
+  cash plus buffer, so a deeper hole does not make anyone give more.
+- **Duration is the only shock lever that works**: more meetings at which a peer rolls
+  `p_cover` and covers. Capped at 6 by the grid.
+- **Thinner buffers make it worse, not better** (the guess in the plan above was wrong). They
+  shrink what a peer can give, and at x0.5 m012's source agreement collapsed to 0.00 to 0.33
+  because she started flagging on her own. At x0.25 nobody is transmitted at all.
+- **Thicker buffers (x2.0) help two peers a little**: duration 6 week 3 x2.0 gave m011 34 and
+  m014 33 of 50, but m012 fell to 19, it needs three disclosed overrides that INCREASE savings,
+  and the gain is about 6 reruns. Not taken. `member_overrides` support stays in `story.py`
+  (with a mandatory `reason`) but the demo uses none.
+- **The ceiling is the dice, not the inputs.** Whether a given neighbour covers at a given
+  meeting is a fresh `p_cover` roll in every rerun, and a peer who does not cover never gets
+  stressed. Getting to 35 of 50 would need a code or params change (for example cover spread
+  over all peers instead of roster order), which is out of bounds for this task.
+
+Simple rule check (the validation baseline, observable data only): it agrees with the replay on
+every flagged member in this scenario. Anita Kisku never gave cover, so the rule also calls her
+INDEPENDENT, and the line "A simple rule would blame ...'s neighbour" is NOT printed. The story
+now carries `simple_rule` per record and `demo_story.py` prints that line automatically if a
+future scenario produces the case.
+
 ## The stability badge is two numbers now
 
 `{matched, differed, not_flagged, flagged_runs, source_agreement, n_runs, badge_text}`, and the
@@ -304,7 +356,7 @@ Still open: the k0 pair (m002 INDEPENDENT, m004 TRANSMITTED) flags in weeks 11 a
 enough that it does not compete with the k2 story and in fact gives section 7 its case. Leave
 it. If the video runs long, the k0 pair is the part to cut.
 
-### TOMORROW, FIRST JOB: make the hero transmitted case less marginal
+### DONE, TARGET NOT MET (see "Hero case tuning" above): make the hero transmitted case less marginal
 
 Two separate findings now point at the same root cause. The stability badge says the k2 peers
 only flag in 11 to 23 of 50 reruns, and cause recovery says 105 of 227 true TRANSMITTED cases
@@ -330,7 +382,7 @@ marginality. If none of the three works, say so in the video rather than moving 
 
 ## Next
 
-- **Tomorrow, in order**: the tuning above, then `scripts/run_validation.py --n 500` (about 55
+- **Next, in order**: `scripts/run_validation.py --n 500` (about 55
   seconds at the measured 0.11s per scenario), then `validation/reality_check.py` (more lenders
   means more overdue, a weak monsoon hits a shared income source together, low overdue in
   normal conditions) folded into the same report.
@@ -436,6 +488,7 @@ either.
 cd backend && .venv/Scripts/python.exe -m pytest
 cd backend && .venv/Scripts/python.exe scripts/demo_story.py
 cd backend && .venv/Scripts/python.exe scripts/run_validation.py --n 100
+cd backend && .venv/Scripts/python.exe scripts/tune_demo.py --with-overrides
 ```
 
 Demo baseline that exercises the trend as a cause: `generate_scenario()` with

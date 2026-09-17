@@ -14,13 +14,14 @@
     {
       "type": "health",
       "member_id": "m010",
-      "start_week": 2,
-      "why": "m010 sits in k2, the kendra with the highest R potential, so the shock lands where the network says it would spread furthest. Severity and duration are the params.py defaults for a health shock."
+      "start_week": 3,
+      "duration_weeks": 6,
+      "why": "m010 sits in k2, the kendra with the highest R potential, so the shock lands where the network says it would spread furthest. Severity is the params.py default for a health shock. Duration 6 (default 4) and start week 3 (was 2) came out of scripts/tune_demo.py: a longer illness gives her peers more meetings at which to cover her, which took the three transmitted peers from 12 to 23 of 50 reruns to 22 to 28 of 50 without any member override. The target of 35 of 50 was not reached by any shock or buffer input in the search; see NEXT.md."
     }
   ],
 
-  "decision_week": 3,
-  "decision_week_why": "The officer sees the first amber at the week 2 meeting and can act by week 3. Acting in week 1 would be clairvoyant, and a fix from week 9 or later could not be judged inside the horizon.",
+  "decision_week": 4,
+  "decision_week_why": "The illness starts in week 3, the officer hears about it at that meeting and can act by week 4. Acting in week 1 would be clairvoyant, and a fix from week 9 or later could not be judged inside the horizon.",
 
   "stability": {
     "seed": 1,

@@ -10,6 +10,7 @@ import json
 import pytest
 
 from demo.story import (
+    apply_member_overrides,
     build_story,
     format_rs,
     load_config,
@@ -229,3 +230,70 @@ def test_no_member_name_contains_a_dash(story):
     for member in story["scenario"]["members"]:
         for dash in DASHES:
             assert dash not in member["name"]
+
+
+# ------------------------------------------------------------------------------------
+# The tuned scenario keeps its story (scripts/tune_demo.py checks the same things)
+# ------------------------------------------------------------------------------------
+
+
+def test_the_hero_kendra_is_where_the_transmitted_cases_are(story):
+    """Retuning the shock must not move the story out of the shocked kendra, and must not
+    spill flags into other kendras beyond the k0 pair that was already there."""
+    kendra_of = {m["id"]: m["kendra_id"] for m in story["scenario"]["members"]}
+    heroes = [
+        r for r in story["attribution"]
+        if r["label"] == TRANSMITTED and r["kendra_id"] == story["shocked_kendra"]
+    ]
+    assert len(heroes) >= 2
+    outside = {mid for mid in story["actual"]["flagged"] if kendra_of[mid] != story["shocked_kendra"]}
+    assert outside <= {"m002", "m004"}
+    # When a hero is flagged, we name the same neighbour almost every time.
+    for record in heroes:
+        assert record["stability"]["source_agreement"] > 0.9
+
+
+def test_m002_is_still_the_independent_case(story):
+    by_id = {r["member_id"]: r for r in story["attribution"]}
+    assert by_id["m002"]["label"] == INDEPENDENT
+
+
+def test_the_top_fix_protects_at_least_two_members(story):
+    assert len(story["smallest_fix"]["applied"]["members_protected"]) >= 2
+
+
+def test_every_record_carries_what_the_simple_rule_would_say(story):
+    """Reported beside the label, never used to make it."""
+    for record in story["attribution"]:
+        assert record["simple_rule"]["label"] in (INDEX, TRANSMITTED, INDEPENDENT)
+
+
+# ------------------------------------------------------------------------------------
+# Member overrides: a disclosed edit to the seeded roster
+# ------------------------------------------------------------------------------------
+
+
+def test_member_overrides_apply_and_leave_everyone_else_alone():
+    from sim.generator import generate_scenario
+
+    scenario = generate_scenario(n_kendras=5, members_per_kendra=5, seed=42)
+    changed = apply_member_overrides(
+        scenario, [{"member_id": "m011", "savings_buffer": 123.0, "reason": "probe"}]
+    )
+    assert changed.member("m011").savings_buffer == 123.0
+    for member in scenario.members:
+        if member.id != "m011":
+            assert changed.member(member.id) == member
+    assert apply_member_overrides(scenario, None) is scenario
+
+
+def test_member_overrides_need_a_reason_and_a_real_field():
+    from sim.generator import generate_scenario
+
+    scenario = generate_scenario(n_kendras=5, members_per_kendra=5, seed=42)
+    with pytest.raises(ValueError):
+        apply_member_overrides(scenario, [{"member_id": "m011", "savings_buffer": 1.0}])
+    with pytest.raises(ValueError):
+        apply_member_overrides(scenario, [{"member_id": "m011", "luck": 1.0, "reason": "x"}])
+    with pytest.raises(ValueError):
+        apply_member_overrides(scenario, [{"member_id": "m011", "id": "m999", "reason": "x"}])

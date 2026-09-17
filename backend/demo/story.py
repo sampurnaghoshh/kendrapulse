@@ -20,6 +20,7 @@ No hyphens and no dashes in any string a viewer reads. It appears in the judged 
 Member ids, income source keys and channel keys are identifiers, not prose, and are exempt.
 """
 
+import dataclasses
 import json
 import time
 from pathlib import Path
@@ -32,6 +33,7 @@ from sim.params import DEFAULT
 from sim.r_number import r_for_display, r_numbers
 from sim.smallest_fix import rupees_at_risk, smallest_fix
 from sim.stability import stability
+from validation.cause_recovery import baseline_labels
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "demo_scenario.json"
 
@@ -291,6 +293,30 @@ def _flagged(scenario, run, as_of_week=None):
     return [m.id for m in scenario.members if run.flagged(m.id, as_of_week)]
 
 
+def apply_member_overrides(scenario, overrides):
+    """Apply the optional `member_overrides` block of the demo config to a generated roster.
+
+    Each entry is `{member_id, <field>: value, reason}`. Only fields that already exist on
+    `Member` can be set, and every entry must carry a `reason` string, because an override is
+    a disclosed edit to the seeded data (the README lists them), never a quiet one. The graph
+    and layout do not depend on the fields an override is allowed to touch, so they are kept.
+    """
+    if not overrides:
+        return scenario
+    members = list(scenario.members)
+    allowed = {f.name for f in dataclasses.fields(members[0])} - {"id", "name", "kendra_id"}
+    for entry in overrides:
+        if not entry.get("reason"):
+            raise ValueError(f"member override for {entry.get('member_id')} has no reason")
+        changes = {k: v for k, v in entry.items() if k not in ("member_id", "reason")}
+        unknown = set(changes) - allowed
+        if unknown:
+            raise ValueError(f"member override sets unknown fields {sorted(unknown)}")
+        i = scenario.index_of[entry["member_id"]]
+        members[i] = dataclasses.replace(members[i], **changes)
+    return dataclasses.replace(scenario, members=tuple(members))
+
+
 def load_config(path=CONFIG_PATH):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -316,6 +342,7 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
         seed=config["generator"]["seed"],
         params=params,
     )
+    scenario = apply_member_overrides(scenario, config.get("member_overrides"))
     # ONE draws array for the whole story. Every world below is handed this object.
     draws = make_draws(scenario.n_members, params, seed=config["draws_seed"])
     shocks = [
@@ -351,6 +378,10 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
 
     # 4. Labels, sentences and badges.
     records = attribute(scenario, shocks, draws, params)
+    # What the no simulation rule from the validation would say about the same people, from
+    # the same event log. Reported, never used to label: it is here so the story can point at
+    # the one kind of case where the replay and a spreadsheet disagree.
+    simple_rule = baseline_labels(scenario, shocks, actual, [r["member_id"] for r in records])
     badges = {
         entry["member_id"]: entry
         for entry in stability(
@@ -371,6 +402,7 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
             "sentence": explanation_sentence(scenario, shocks, record),
             "badge_text": badges[record["member_id"]]["badge_text"],
             "stability": badges[record["member_id"]],
+            "simple_rule": simple_rule[record["member_id"]],
         }
         for record in records
     ]

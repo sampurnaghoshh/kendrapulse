@@ -111,7 +111,7 @@ def week_by_week(story):
             origins = ", ".join(sorted({e["from_name"] for e in frozen}))
             line(
                 f"a lender freezes top ups over arrears traced to {origins}: "
-                f"{len(frozen)} members in other kendras lose {format_rs(total)} of savings",
+                f"{len(frozen)} {'member' if len(frozen) == 1 else 'members'} in other kendras lose {format_rs(total)} of savings",
                 indent=6,
             )
     line()
@@ -145,6 +145,16 @@ def attribution(story):
         elif stability["differed"]:
             line(
                 f"{stability['differed']} of those reruns named a different cause.",
+                indent=8,
+            )
+        # The case the replay exists for: she covered a neighbour, so a rule working from the
+        # event log alone blames the neighbour, but the world without anybody's shock still
+        # flags her. Printed only when it actually happens in this run.
+        rule = record["simple_rule"]
+        if record["label"] == "INDEPENDENT" and rule["label"] == "TRANSMITTED":
+            line(
+                f"A simple rule would blame {record['name']}'s neighbour; the replay shows she "
+                "would have fallen anyway.",
                 indent=8,
             )
         line()
