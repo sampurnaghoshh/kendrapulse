@@ -63,7 +63,7 @@ def opening(story):
              f"{opening['most_exposed_r_potential']:.2f}. Either would do; the story plants its")
         line(f"shock in {story['shocked_kendra']}.")
     line()
-    line("Every member is green and this number is already above 1. That is the whole pitch:")
+    line("Every member is green and this number is already above 1. That is the point:")
     line("the risk is in the network, and it is visible before anything has gone wrong.")
 
 

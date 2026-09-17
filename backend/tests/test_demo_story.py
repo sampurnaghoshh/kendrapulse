@@ -202,7 +202,7 @@ def test_money_is_moved_out_of_stress_and_never_saved():
 
 
 def test_no_sentence_the_viewer_reads_contains_a_hyphen_or_a_dash(story):
-    """It appears in the judged video. Ids and channel keys are identifiers, not prose, so
+    """It appears in the demo video. Ids and channel keys are identifiers, not prose, so
     only the prose fields are checked."""
     prose = [
         story["shock"]["sentence"],

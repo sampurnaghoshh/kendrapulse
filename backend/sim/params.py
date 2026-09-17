@@ -6,7 +6,7 @@ Two rules govern this file:
    stability can build a perturbed copy with `dataclasses.replace(...)` without any run
    mutating the numbers another run is reading. `sim/` stays pure.
 2. Every field carries a SOURCE (a regulation or published guardrail we can cite to a
-   judge) or a REASON (a modelling choice we picked, and why). If a number appears
+   reviewer) or a REASON (a modelling choice we picked, and why). If a number appears
    anywhere else in the codebase without living here first, that is a bug.
 """
 
@@ -81,7 +81,7 @@ class Params:
     buffer_topup_rate: float = 0.05  # REASON: share of any surplus that becomes savings
     income_noise_halfwidth: float = 0.08  # REASON: informal income varies week to week.
     # Uniform on [1 - h, 1 + h], not a normal draw, because the draws array is uniform
-    # and a half width is easier to explain to a judge than a standard deviation.
+    # and a half width is easier to explain to a reviewer than a standard deviation.
     expense_noise_halfwidth: float = 0.10  # REASON: as above, for consumption
 
     # ----------------------------------------------------------------------------------

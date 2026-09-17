@@ -133,7 +133,7 @@ def test_the_demo_transmitted_cases_are_marginal_but_well_explained():
 
 
 def test_the_badge_text_carries_no_hyphens_or_dashes(robust_case):
-    """It is rendered on screen in the judged video."""
+    """It is rendered on screen in the demo video."""
     scenario, shocks, records = robust_case
     for entry in stability(scenario, shocks, (), DEFAULT, records, seed=SEED, n_runs=5):
         assert entry["badge_text"] == (

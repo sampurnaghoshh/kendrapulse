@@ -1,7 +1,6 @@
 # CLAUDE.md: KendraPulse prototype (build contract)
 
-Hackathon prototype for microfinance "stress tracing". Deadline is tight: a demo that WORKS beats an ambitious one that breaks.
-Pitch and strategy context lives in `docs/STRATEGY.md` (git ignored). Do not read it unless asked.
+Prototype for microfinance "stress tracing". Deadline is tight: a demo that WORKS beats an ambitious one that breaks.
 
 ## What we are building
 When a borrower in a joint liability group (kendra) becomes stressed, label her as:
@@ -12,12 +11,12 @@ Then find the smallest supportive intervention that stops the spread, and show t
 
 ## Working rules for Claude Code
 * Work phase by phase (see Build phases). Finish a phase, run its checks, summarise the design decisions in 5 lines, then STOP and wait.
-* Simple, readable code over clever code. Comment the WHY. The team must be able to explain every line to judges.
+* Simple, readable code over clever code. Comment the WHY. The team must be able to explain every line to reviewers.
 * `sim/` is pure functions: no global state, no I/O, everything driven by an explicit seed.
 * NEVER hardcode demo outputs (R values, "47 of 50", members protected). They must come from real runs. Tuning the seeded demo scenario's inputs (severities, buffers, incomes) to get a clear story is fine; special casing code paths for it is not.
 * Do not add dependencies, a database, auth or Docker without asking.
 * All tunable numbers live in `backend/sim/params.py` with a comment giving the source or the reason.
-* UI copy visible on screen avoids hyphens and dashes (it appears in the judged video). Code, identifiers and URLs are exempt.
+* UI copy visible on screen avoids hyphens and dashes (it appears in the demo video). Code, identifiers and URLs are exempt.
 * Commit after each working phase with a clear message.
 
 ## Stack
@@ -110,7 +109,7 @@ Tests the LOGIC, never accuracy on real borrowers.
 * If the API is unreachable, load `frontend/public/demo_snapshot.json` (exported by `scripts/export_snapshot.py`) so the seeded story still plays.
 
 ## Build phases (stop after each)
-0. Skeleton: folders, requirements, FastAPI health route, Vite app that calls it, pytest running, `.gitignore` (includes `docs/STRATEGY.md`, `.env`).
+0. Skeleton: folders, requirements, FastAPI health route, Vite app that calls it, pytest running, `.gitignore` (includes `.env`).
 1. `params.py`, `generator.py`, `engine.py` with draws and event log. Tests: same seed gives identical output; a run with no shocks is identical to its counterfactual; MFIN and RBI caps hold.
 2. `attribution.py`, `r_number.py`. Tests on hand built mini scenarios: one clear index, one clear transmitted, one clear independent.
 3. Interventions, smallest fix, stability. Then `scripts/demo_story.py` prints the whole demo story in the terminal. THIS IS THE GATE: if it tells the story, the prototype exists.

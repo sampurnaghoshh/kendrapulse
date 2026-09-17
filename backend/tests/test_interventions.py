@@ -163,7 +163,7 @@ def test_the_lighter_of_two_fixes_of_one_type_sorts_first():
 
 
 def test_the_description_avoids_hyphens_and_dashes(kendra):
-    """It appears on screen in the judged video."""
+    """It appears on screen in the demo video."""
     for fix in (moratorium(MEMBER, 1, 2), reschedule(MEMBER, 1, 0.5)):
         text = fix.describe(kendra)
         assert kendra.member(MEMBER).name in text

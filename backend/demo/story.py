@@ -16,7 +16,7 @@ Everything is JSON serialisable. The engine indexes a numpy array, so most of it
 numpy scalars, and `json.dumps` refuses those. `_plain` coerces the whole tree on the way
 out, which is also what lets Phase 5 hand this straight to FastAPI.
 
-No hyphens and no dashes in any string a viewer reads. It appears in the judged video.
+No hyphens and no dashes in any string a viewer reads. It appears in the demo video.
 Member ids, income source keys and channel keys are identifiers, not prose, and are exempt.
 """
 

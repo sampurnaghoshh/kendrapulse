@@ -284,7 +284,7 @@ def _own_cause_label(worlds, member_id, as_of_week):
         # have caught up with her by week 11 is an INDEX case: the monsoon is what
         # flagged her. Judging at as_of_week would call her INDEX all through the demo
         # and then silently flip her to INDEPENDENT when the slider passed week 11, which
-        # is both wrong and the kind of thing a judge notices.
+        # is both wrong and the kind of thing a reviewer notices.
         own_flag_week = only.first_flag_week(member_id)
         if not worlds.run(set(), {member_id}).flagged(member_id, own_flag_week):
             tags = tuple(

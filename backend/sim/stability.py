@@ -172,7 +172,7 @@ def stability(
         entry["source_agreement"] = (
             entry["matched"] / flagged_runs if flagged_runs else None
         )
-        # No hyphens and no dashes: this string is rendered on screen in the judged video.
+        # No hyphens and no dashes: this string is rendered on screen in the demo video.
         entry["badge_text"] = (
             f"flagged in {flagged_runs} of {n_runs} reruns; "
             f"same cause in {entry['matched']} of those"

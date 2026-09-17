@@ -148,7 +148,7 @@ class Intervention:
         return (self.type, self.weeks or 0, -(self.installment_fraction or 0.0))
 
     def describe(self, scenario=None) -> str:
-        """One line for the UI. No hyphens or dashes: this appears in the judged video."""
+        """One line for the UI. No hyphens or dashes: this appears in the demo video."""
         who = scenario.member(self.member_id).name if scenario is not None else self.member_id
         if self.type == MORATORIUM:
             return f"Pause {who}'s installments for {self.weeks} weeks from week {self.start_week}"
