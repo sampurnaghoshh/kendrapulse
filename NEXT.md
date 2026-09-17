@@ -466,6 +466,12 @@ Lakshmi), so the view can be drawn once per source rather than once per member.
   transmitted peer who was amber for one week vanish from the picture a week later.
 - Explanation cards persist once shown, for the same reason: the slider moving on does not
   make the explanation untrue.
+- SmallestFixPanel appears from the decision week. Apply swaps the graph to that fix's replay
+  (`fix_replays`). Only one alternate world at a time: What if and an applied fix share one
+  state value. Protected markers show "protected so far" (flagged by this week in reality,
+  not with the fix), which equals `members_protected` at week 12. R chips use the fix's own
+  `r_live_by_week` where it exists, else the What if rule (R potential if nobody flagged in
+  that kendra, otherwise "R live not scored here").
 
 ## Validation fairness
 

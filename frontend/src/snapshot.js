@@ -74,7 +74,8 @@ export function kendraGeometry(snapshot) {
 }
 
 // A "world" is what the graph draws: weekly member states plus the persistent ring.
-// Reality is the actual run; step 4 adds the counterfactual worlds in the same shape.
+// Reality is the actual run. What if worlds and fix replays use the same shape and set
+// `alternate`, so the app can insist only one alternate world is ever on screen.
 export function realityWorld(snapshot) {
   return {
     weeks: snapshot.actual.weeks,
@@ -99,7 +100,7 @@ export function counterfactualWorld(snapshot, memberId) {
     weeks: world.weeks,
     everFlagged: world.ever_flagged_by_week,
     coverEdges: (week) => coverEdgesFromWeeks(snapshot, world.weeks, week),
-    counterfactual: true,
+    alternate: true,
     title: worldTitle(snapshot, memberId),
   }
 }
@@ -116,6 +117,49 @@ function coverEdgesFromWeeks(snapshot, weeks, week) {
     for (const g of givers) for (const r of receivers) if (g !== r) keys.push(edgeKey(g, r))
   }
   return keys
+}
+
+// A smallest fix replay from the snapshot (fix_replays), with what the ranked entry says
+// about it: who it protects and the R live per kendra computed on that replay.
+export function fixWorld(snapshot, rank) {
+  const replay = snapshot.fix_replays.find((r) => r.rank === rank)
+  const fix = snapshot.smallest_fix.ranked.find((r) => r.rank === rank)
+  return {
+    weeks: replay.weeks,
+    everFlagged: replay.ever_flagged_by_week,
+    coverEdges: (week) => coverEdgesFromWeeks(snapshot, replay.weeks, week),
+    alternate: true,
+    fix,
+    title: interventionText(snapshot, fix.intervention, 'with'),
+    rLiveByWeek: fix.r_live_by_week,
+    // Protected so far: flagged by this week in reality, not flagged by this week with the
+    // fix. At the horizon this is exactly the snapshot's members_protected; earlier weeks
+    // only show the ones reality has already flagged, so the marker never runs ahead.
+    isProtected: (id, week) =>
+      fix.members_protected.includes(id) &&
+      snapshot.ever_flagged_by_week[id][week - 1] &&
+      !replay.ever_flagged_by_week[id][week - 1],
+  }
+}
+
+// One intervention in three grammatical shapes, built from its fields so the wording stays
+// in step with the numbers:
+//   'do'   "Cut Lakshmi's installment by 50% from week 4"
+//   'with' "With Lakshmi's installment cut by 50% from week 4"
+//   'her'  "cut her installment by 50% from week 4"
+export function interventionText(snapshot, iv, form) {
+  const name = firstName(membersById(snapshot)[iv.member_id])
+  const who = form === 'her' ? 'her' : `${name}'s`
+  let text
+  if (iv.type === 'moratorium') {
+    const span = `for ${iv.weeks} weeks from week ${iv.start_week}`
+    text = form === 'with' ? `With ${who} installments paused ${span}` : `pause ${who} installments ${span}`
+  } else {
+    const pct = Math.round(100 * (1 - iv.installment_fraction))
+    const span = `by ${pct}% from week ${iv.start_week}`
+    text = form === 'with' ? `With ${who} installment cut ${span}` : `cut ${who} installment ${span}`
+  }
+  return form === 'do' ? text[0].toUpperCase() + text.slice(1) : text
 }
 
 // Plain words for each shock type, for the banner ("World without Lakshmi's illness").
@@ -152,13 +196,16 @@ export function edgeKey(a, b) {
 // The R chip always names its kind. R live exists only once the kendra has an index case
 // (null before that), so until then the chip shows R potential, as CLAUDE.md specifies.
 //
-// A counterfactual world has no R live in the snapshot. R potential is a property of the
+// A fix replay carries its own R live per kendra; use it wherever it exists. Beyond that,
+// an alternate world has no R live in the snapshot. R potential is a property of the
 // network, so it still holds for a kendra with nobody flagged in that world. A kendra with a
 // flag there would need attribution rerun inside that world, so the chip says it is not
 // scored rather than borrowing reality's number.
 export function rChipText(snapshot, kendraId, week, world) {
   const r = snapshot.r.find((row) => row.kendra_id === kendraId)
-  if (world?.counterfactual) {
+  const fixLive = world?.rLiveByWeek?.[kendraId]?.[week - 1]
+  if (fixLive !== undefined && fixLive !== null) return `R live ${fixLive.toFixed(2)}`
+  if (world?.alternate) {
     const flagged = snapshot.scenario.kendras[kendraId].some((id) => world.everFlagged[id][week - 1])
     return flagged ? 'R live not scored here' : `R potential ${r.r_potential.toFixed(2)}`
   }

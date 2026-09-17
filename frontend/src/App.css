@@ -610,3 +610,145 @@ body {
     font-size: 20px;
   }
 }
+
+/* Smallest fix */
+.fix-panel {
+  scroll-margin-top: 8px;
+}
+
+.find-fix {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fix-heading {
+  margin: 4px 2px 8px;
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.fix-option {
+  scroll-margin-top: 8px;
+}
+
+.fix-option.is-applied {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.fix-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fix-rank {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fix-button {
+  padding: 4px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fix-button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+.fix-title {
+  margin: 4px 0 2px;
+  font-weight: 600;
+}
+
+.fix-line {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.fix-support {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.matching-fix {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.shield path {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.shield path.shield-check {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shield-sample {
+  width: 16px;
+  height: 18px;
+}
+
+.rupee-line.is-compare {
+  max-width: 300px;
+}
+
+.rupee-line .compare {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.rupee-line .compare strong {
+  display: inline;
+  font-size: 20px;
+}
+
+@media (max-width: 860px) {
+  .rupee-line .compare {
+    display: inline;
+    margin-right: 6px;
+  }
+}

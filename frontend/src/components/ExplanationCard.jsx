@@ -1,5 +1,13 @@
 import StabilityBadge from './StabilityBadge.jsx'
-import { LABEL_TEXT, attributionFor, counterfactualWorld, displayText, firstName, kendraLabel } from '../snapshot.js'
+import {
+  LABEL_TEXT,
+  attributionFor,
+  counterfactualWorld,
+  displayText,
+  firstName,
+  interventionText,
+  kendraLabel,
+} from '../snapshot.js'
 
 // One card per clicked member. `revealedWeek` is the latest week the card has been on
 // screen for: the explanation appears once the slider has reached her first flag, and then
@@ -13,6 +21,7 @@ export default function ExplanationCard({
   selected,
   whatIfOn,
   onToggleWhatIf,
+  onOpenFix,
   onSelect,
   onClose,
 }) {
@@ -46,6 +55,7 @@ export default function ExplanationCard({
         <>
           <p className="card-sentence">{displayText(snapshot, attribution.sentence)}</p>
           <StabilityBadge stability={attribution.stability} />
+          <MatchingFix snapshot={snapshot} member={member} week={week} onOpenFix={onOpenFix} />
           {snapshot.counterfactual_worlds[member.id] && (
             <WhatIf snapshot={snapshot} member={member} week={week} on={whatIfOn} onToggle={onToggleWhatIf} />
           )}
@@ -76,5 +86,27 @@ function WhatIf({ snapshot, member, week, on, onToggle }) {
         </p>
       )}
     </div>
+  )
+}
+
+// If the smallest fix search ranked a fix aimed at this member herself, point at it. Only
+// from the decision week, the same week the fix list itself appears.
+function MatchingFix({ snapshot, member, week, onOpenFix }) {
+  const { decision_week: decisionWeek, ranked } = snapshot.smallest_fix
+  const fix = ranked.find((f) => f.intervention.member_id === member.id)
+  if (!fix || week < decisionWeek) return null
+  return (
+    <p className="matching-fix">
+      Matching fix: {interventionText(snapshot, fix.intervention, 'her')}{' '}
+      <button
+        className="link-button"
+        onClick={(ev) => {
+          ev.stopPropagation()
+          onOpenFix(fix.rank)
+        }}
+      >
+        (option {fix.rank})
+      </button>
+    </p>
   )
 }

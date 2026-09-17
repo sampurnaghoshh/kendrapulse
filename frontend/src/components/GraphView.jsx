@@ -66,6 +66,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
           const status = states[m.id].status
           const ringed = world.everFlagged[m.id][week - 1]
           const selected = m.id === selectedId
+          const isProtected = Boolean(world.isProtected?.(m.id, week))
           return (
             <g
               key={m.id}
@@ -74,7 +75,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
               onClick={() => onSelect(m.id)}
               role="button"
               tabIndex={0}
-              aria-label={`${firstName(m)}, ${status}${ringed ? ', flagged at some point so far' : ''}`}
+              aria-label={`${firstName(m)}, ${status}${ringed ? ', flagged at some point so far' : ''}${isProtected ? ', protected by the fix' : ''}`}
               onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(m.id)}
             >
               {selected && <circle className="node-select" r={NODE_R + 13} />}
@@ -83,6 +84,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
               <text className="node-mark" y={6} textAnchor="middle">
                 {STATUS_MARK[status]}
               </text>
+              {isProtected && <ShieldMark x={NODE_R + 3} y={10} />}
               <text className="node-name" y={NODE_R + 21} textAnchor="middle">
                 {firstName(m)}
               </text>
@@ -91,6 +93,16 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
         })}
       </g>
     </svg>
+  )
+}
+
+// Small shield with a check: this member would have been flagged by now without the fix.
+function ShieldMark({ x, y }) {
+  return (
+    <g className="shield" transform={`translate(${x} ${y})`} aria-hidden="true">
+      <path d="M0 -11 L10 -7 L10 1 C10 7 5 11 0 13 C-5 11 -10 7 -10 1 L-10 -7 Z" />
+      <path className="shield-check" d="M-5 1 L-1 5 L5 -3" />
+    </g>
   )
 }
 
@@ -107,7 +119,7 @@ function RChip({ x, y, text }) {
   )
 }
 
-export function GraphLegend() {
+export function GraphLegend({ showProtected }) {
   return (
     <ul className="legend">
       <li>
@@ -125,6 +137,17 @@ export function GraphLegend() {
       <li>
         <span className="pulse-sample" /> Guarantee cover paid this week
       </li>
+      {showProtected && (
+        <li>
+          <svg className="shield-sample" viewBox="-12 -13 24 28" aria-hidden="true">
+            <g className="shield">
+              <path d="M0 -11 L10 -7 L10 1 C10 7 5 11 0 13 C-5 11 -10 7 -10 1 L-10 -7 Z" />
+              <path className="shield-check" d="M-5 1 L-1 5 L5 -3" />
+            </g>
+          </svg>
+          Protected by the fix
+        </li>
+      )}
     </ul>
   )
 }

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import GraphView, { GraphLegend } from './components/GraphView.jsx'
 import ExplanationCard from './components/ExplanationCard.jsx'
 import OfficerNote from './components/OfficerNote.jsx'
+import SmallestFixPanel from './components/SmallestFixPanel.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
 import {
   attributionFor,
   counterfactualWorld,
+  fixWorld,
   formatRupees,
   loadSnapshot,
   membersById,
@@ -31,8 +33,13 @@ export default function App() {
   // Explanation cards, newest first: {id, revealedWeek}. See ExplanationCard for why
   // revealedWeek only ever grows.
   const [cards, setCards] = useState([])
-  // Member whose counterfactual world the graph shows, or null for reality.
-  const [whatIfId, setWhatIfId] = useState(null)
+  // The one alternate world on screen, if any: {kind: 'whatif', id} or {kind: 'fix', rank}.
+  // A single state value, so a What if and an applied fix can never both be showing.
+  const [alternate, setAlternate] = useState(null)
+  const [fixOpen, setFixOpen] = useState(false)
+
+  const panelRef = useRef(null)
+  const fixRef = useRef(null)
 
   useEffect(() => {
     loadSnapshot().then(setSnapshot, (err) => setError(err.message))
@@ -40,10 +47,14 @@ export default function App() {
 
   const horizon = snapshot?.params.horizon_weeks ?? 12
   const reality = useMemo(() => snapshot && realityWorld(snapshot), [snapshot])
-  const world = useMemo(
-    () => (snapshot && whatIfId ? counterfactualWorld(snapshot, whatIfId) : reality),
-    [snapshot, whatIfId, reality],
-  )
+  const world = useMemo(() => {
+    if (!snapshot || !alternate) return reality
+    if (alternate.kind === 'whatif') return counterfactualWorld(snapshot, alternate.id)
+    return fixWorld(snapshot, alternate.rank)
+  }, [snapshot, alternate, reality])
+
+  const whatIfId = alternate?.kind === 'whatif' ? alternate.id : null
+  const appliedRank = alternate?.kind === 'fix' ? alternate.rank : null
 
   // Advance one week per tick.
   useEffect(() => {
@@ -80,12 +91,27 @@ export default function App() {
       const kept = cs.filter((c) => c.id !== id && isRevealed(c))
       return [existing ?? { id, revealedWeek: week }, ...kept]
     })
+    // The new card goes to the top of the panel; bring it into view.
+    panelRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function closeCard(id) {
     setCards((cs) => cs.filter((c) => c.id !== id))
     if (selectedId === id) setSelectedId(null)
-    if (whatIfId === id) setWhatIfId(null)
+    if (whatIfId === id) setAlternate(null)
+  }
+
+  function toggleWhatIf(id) {
+    setAlternate((current) => (current?.kind === 'whatif' && current.id === id ? null : { kind: 'whatif', id }))
+  }
+
+  function openFixes(rank) {
+    setFixOpen(true)
+    // Wait one frame so the list exists before scrolling to it.
+    requestAnimationFrame(() => {
+      const target = rank ? document.getElementById(`fix-option-${rank}`) : fixRef.current
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   function togglePlay() {
@@ -107,12 +133,12 @@ export default function App() {
         <span className="private-tag">Visible to the loan officer only</span>
       </header>
 
-      <main className={`graph-pane${world.counterfactual ? ' is-whatif' : ''}`}>
-        {world.counterfactual && (
+      <main className={`graph-pane${world.alternate ? ' is-whatif' : ''}`}>
+        {world.alternate && (
           <div className="world-banner" role="status">
             <span className="world-title">{world.title}</span>
             <span className="world-note">Same weeks, same dice, same positions</span>
-            <button className="back-to-reality" onClick={() => setWhatIfId(null)}>
+            <button className="back-to-reality" onClick={() => setAlternate(null)}>
               Back to reality
             </button>
           </div>
@@ -124,16 +150,11 @@ export default function App() {
           selectedId={selectedId}
           onSelect={selectMember}
         />
-        <p className="rupee-line" aria-live="polite">
-          <strong>{formatRupees(rupeesFlaggedSoFar(snapshot, world, week))}</strong>
-          <span>
-            of loans on members flagged at some point so far{world.counterfactual ? ' in this world' : ''}
-          </span>
-        </p>
-        <GraphLegend />
+        <RupeeLine snapshot={snapshot} reality={reality} world={world} week={week} />
+        <GraphLegend showProtected={Boolean(world.fix)} />
       </main>
 
-      <aside className="side-panel">
+      <aside className="side-panel" ref={panelRef}>
         <OfficerNote snapshot={snapshot} week={week} />
         {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
         {cards.map((card) => (
@@ -145,16 +166,52 @@ export default function App() {
             revealedWeek={card.revealedWeek}
             selected={card.id === selectedId}
             whatIfOn={card.id === whatIfId}
-            onToggleWhatIf={() => setWhatIfId((current) => (current === card.id ? null : card.id))}
+            onToggleWhatIf={() => toggleWhatIf(card.id)}
+            onOpenFix={openFixes}
             onSelect={() => setSelectedId(card.id)}
             onClose={() => closeCard(card.id)}
           />
         ))}
+        <SmallestFixPanel
+          ref={fixRef}
+          snapshot={snapshot}
+          week={week}
+          open={fixOpen}
+          appliedRank={appliedRank}
+          onOpen={() => openFixes()}
+          onApply={(rank) => setAlternate({ kind: 'fix', rank })}
+          onBack={() => setAlternate(null)}
+        />
       </aside>
 
       <footer className="slider-bar">
         <WeekSlider week={week} weeks={horizon} playing={playing} onWeek={setWeek} onTogglePlay={togglePlay} />
       </footer>
     </div>
+  )
+}
+
+// Loans on members flagged at some point so far. With a fix applied it compares the two
+// worlds side by side; in a What if world it names the world it is counting.
+function RupeeLine({ snapshot, reality, world, week }) {
+  const here = formatRupees(rupeesFlaggedSoFar(snapshot, world, week))
+  if (world.fix) {
+    return (
+      <p className="rupee-line is-compare" aria-live="polite">
+        <span className="compare">
+          <strong>{formatRupees(rupeesFlaggedSoFar(snapshot, reality, week))}</strong> without the fix,
+        </span>
+        <span className="compare">
+          <strong>{here}</strong> with it
+        </span>
+        <span>loans on members flagged at some point so far</span>
+      </p>
+    )
+  }
+  return (
+    <p className="rupee-line" aria-live="polite">
+      <strong>{here}</strong>
+      <span>of loans on members flagged at some point so far{world.alternate ? ' in this world' : ''}</span>
+    </p>
   )
 }
