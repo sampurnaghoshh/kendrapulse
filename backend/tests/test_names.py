@@ -12,7 +12,7 @@ import json
 import pytest
 
 import sim.generator as generator
-from demo.story import build_story
+from demo.story import build_story, load_config
 
 # The lists as they were before the Karnataka swap, kept here as the reference world.
 PREVIOUS_FIRST_NAMES = (
@@ -83,3 +83,42 @@ def test_the_names_actually_changed(both_stories):
 def test_everything_but_the_names_is_identical(both_stories, key):
     previous, current = both_stories
     assert _scrubbed(previous)[key] == _scrubbed(current)[key], key
+
+
+# ---------------------------------------------------------------------------------------
+# display_name_overrides: unique first names on screen, nothing else moves
+# ---------------------------------------------------------------------------------------
+
+# The six members the story is told about keep the names the video uses.
+STORY_NAMES = {
+    "m010": "Lakshmi", "m011": "Savitha", "m012": "Roopa",
+    "m014": "Latha", "m002": "Meena", "m004": "Suma",
+}
+
+
+def test_every_first_name_is_unique_across_the_branch(both_stories):
+    _, current = both_stories
+    firsts = [m["name"].split(" ")[0] for m in current["scenario"]["members"]]
+    duplicates = sorted({f for f in firsts if firsts.count(f) > 1})
+    assert duplicates == []
+
+
+def test_the_story_members_keep_their_first_names(both_stories):
+    _, current = both_stories
+    by_id = {m["id"]: m["name"].split(" ")[0] for m in current["scenario"]["members"]}
+    assert {mid: by_id[mid] for mid in STORY_NAMES} == STORY_NAMES
+
+
+@pytest.fixture(scope="module")
+def with_and_without_overrides(both_stories):
+    _, current = both_stories
+    config = load_config()
+    assert config["display_name_overrides"], "the demo config should carry name overrides"
+    config.pop("display_name_overrides")
+    return build_story(config=config), current
+
+
+@pytest.mark.parametrize("key", [k for k in COMPARED if k != "config"])
+def test_name_overrides_change_nothing_but_names(with_and_without_overrides, key):
+    plain, overridden = with_and_without_overrides
+    assert _scrubbed(plain)[key] == _scrubbed(overridden)[key], key

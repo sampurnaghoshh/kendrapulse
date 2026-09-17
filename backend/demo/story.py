@@ -319,6 +319,28 @@ def apply_member_overrides(scenario, overrides):
     return dataclasses.replace(scenario, members=tuple(members))
 
 
+def apply_display_name_overrides(scenario, overrides):
+    """Apply the optional `display_name_overrides` block: `{member_id: first_name}`.
+
+    The generator draws names from a random pair list, so a 25 member branch repeats first
+    names (three Pushpas), and the UI shows first names only. This swaps the first name and
+    keeps the surname. It runs AFTER generation, so no random draw moves, and it touches name
+    strings only: the member's `name` and the graph node's `name` attribute. Nothing in the
+    simulation reads either.
+    """
+    if not overrides:
+        return scenario
+    members = list(scenario.members)
+    for member_id, first in overrides.items():
+        i = scenario.index_of[member_id]
+        surname = members[i].name.split(" ", 1)[1]
+        members[i] = dataclasses.replace(members[i], name=f"{first} {surname}")
+    graph = scenario.graph.copy()
+    for m in members:
+        graph.nodes[m.id]["name"] = m.name
+    return dataclasses.replace(scenario, members=tuple(members), graph=graph)
+
+
 def load_config(path=CONFIG_PATH):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
@@ -341,7 +363,8 @@ def setup_world(config, params=DEFAULT):
         params=params,
     )
     scenario = apply_member_overrides(scenario, config.get("member_overrides"))
-    draws = make_draws(scenario.n_members, params, seed=config["draws_seed"])
+    scenario = apply_display_name_overrides(scenario, config.get("display_name_overrides"))
+    draws =make_draws(scenario.n_members, params, seed=config["draws_seed"])
     shocks = [
         Shock(
             type=s["type"],

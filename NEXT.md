@@ -428,6 +428,12 @@ marginality. If none of the three works, say so in the video rather than moving 
   Watch in the video: three of the six flagged members share the surname Gowda (it took
   Kisku's position, which was common in the old roster). Harmless, but say first names.
 
+- **Unique display first names, DONE**: `display_name_overrides` in `data/demo_scenario.json`
+  (`{member_id: first_name}`), applied in `setup_world()` after generation, name strings only.
+  m008 Deepa, m013 Nandini, m017 Chaitra, m018 Gowri, m021 Bhavya, m023 Kusuma, m024 Shwetha.
+  The six story members keep their names. `tests/test_names.py` checks first names are unique
+  and that the story with and without the overrides is identical once names map to ids.
+
 ## Phase 5 part 1: the static snapshot
 
 `scripts/export_snapshot.py` writes `frontend/public/demo_snapshot.json` (about 512 KB, floats

@@ -8,6 +8,17 @@
     "members_per_kendra": 5
   },
 
+  "display_name_overrides": {
+    "m008": "Deepa",
+    "m013": "Nandini",
+    "m017": "Chaitra",
+    "m018": "Gowri",
+    "m021": "Bhavya",
+    "m023": "Kusuma",
+    "m024": "Shwetha"
+  },
+  "display_name_overrides_why": "The screen shows first names only and the generator repeats them (three Pushpas, three Lakshmis, two Rathnas, Lathas and Meenas). Applied after generation to name strings only, so every run is unchanged; tests/test_names.py checks that. The six members the story follows keep their names.",
+
   "draws_seed": 1,
 
   "shocks": [
