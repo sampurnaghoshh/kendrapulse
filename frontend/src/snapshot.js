@@ -33,6 +33,21 @@ export function displayText(snapshot, text) {
   return out.replace(/\s*[-‐-―]\s*/g, ' ')
 }
 
+// Indian digit grouping, as the snapshot's own text uses: Rs 4,20,707.
+const RUPEES = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
+export function formatRupees(amount) {
+  return `Rs ${RUPEES.format(Math.round(amount))}`
+}
+
+// Loans outstanding on everyone flagged at some point up to this week in the given world.
+// At week 12 of reality this equals the snapshot's rupees_at_risk; earlier weeks use the
+// same rule on the ring data so the number grows as the story plays.
+export function rupeesFlaggedSoFar(snapshot, world, week) {
+  return snapshot.scenario.members
+    .filter((m) => world.everFlagged[m.id][week - 1])
+    .reduce((sum, m) => sum + m.total_outstanding, 0)
+}
+
 export function attributionFor(snapshot, memberId) {
   return snapshot.attribution.find((a) => a.member_id === memberId) ?? null
 }

@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import GraphView, { GraphLegend } from './components/GraphView.jsx'
 import ExplanationCard from './components/ExplanationCard.jsx'
+import OfficerNote from './components/OfficerNote.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
-import { attributionFor, counterfactualWorld, loadSnapshot, membersById, realityWorld } from './snapshot.js'
+import {
+  attributionFor,
+  counterfactualWorld,
+  formatRupees,
+  loadSnapshot,
+  membersById,
+  realityWorld,
+  rupeesFlaggedSoFar,
+} from './snapshot.js'
 
 // About 700 ms per week: slow enough to read a colour change, fast enough for a video.
 const MS_PER_WEEK = 700
@@ -115,10 +124,17 @@ export default function App() {
           selectedId={selectedId}
           onSelect={selectMember}
         />
+        <p className="rupee-line" aria-live="polite">
+          <strong>{formatRupees(rupeesFlaggedSoFar(snapshot, world, week))}</strong>
+          <span>
+            of loans on members flagged at some point so far{world.counterfactual ? ' in this world' : ''}
+          </span>
+        </p>
         <GraphLegend />
       </main>
 
       <aside className="side-panel">
+        <OfficerNote snapshot={snapshot} week={week} />
         {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
         {cards.map((card) => (
           <ExplanationCard
