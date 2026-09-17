@@ -901,6 +901,8 @@ body {
   text-align: center;
   color: var(--muted);
   font-size: 15px;
+  /* Fixed line height: the caption grows bolder at the divergence week, not taller. */
+  line-height: 24px;
 }
 
 .divergence-caption.is-diverged {
@@ -925,6 +927,12 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+/* Hidden, not removed, before her first flag week: it keeps its space, so the graphs do not
+   jump when it appears. */
+.split-transmitted.is-hidden {
+  visibility: hidden;
 }
 
 .split-source {

@@ -156,7 +156,6 @@ export default function App() {
   // The split screen follows the selected member; without one it falls back to whoever the
   // world is about (the What if member, or the member the fix is aimed at).
   const subjectId = splitView ? (selectedId ?? splitView.targetId) : null
-  const subjectCard = cards.find((c) => c.id === subjectId)
 
   return (
     <div className={`app${splitView ? ' is-split' : ''}`}>
@@ -180,7 +179,6 @@ export default function App() {
             horizon={horizon}
             subjectId={subjectId}
             selectedId={selectedId}
-            subjectRevealed={Boolean(subjectCard && isRevealed(subjectCard))}
             onSelect={selectMember}
             onClose={() => setSplit(null)}
           />

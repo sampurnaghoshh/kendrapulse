@@ -22,7 +22,6 @@ export default function TwoWorldsView({
   horizon,
   subjectId,
   selectedId,
-  subjectRevealed,
   onSelect,
   onClose,
 }) {
@@ -83,7 +82,7 @@ export default function TwoWorldsView({
 
       <div className="split-foot">
         <GraphLegend showProtected={Boolean(rightWorld.fix)} />
-        <TransmittedLine snapshot={snapshot} member={subject} revealed={subjectRevealed} />
+        <TransmittedLine snapshot={snapshot} member={subject} week={week} />
       </div>
     </section>
   )
@@ -105,13 +104,15 @@ function statusPhrase(world, memberId, week) {
 }
 
 // Under the right panel: where a transmitted member's stress came from, with the same two
-// number badge as her card. Only once her card has revealed it, never ahead of the story.
-function TransmittedLine({ snapshot, member, revealed }) {
+// number badge as her card. Unlike the card it follows the slider: rewinding before her first
+// flag hides it, so replaying the two worlds from week 1 never names the cause ahead of time.
+function TransmittedLine({ snapshot, member, week }) {
   const attribution = member ? attributionFor(snapshot, member.id) : null
-  if (!attribution || attribution.label !== 'TRANSMITTED' || !revealed) return <div />
+  if (!attribution || attribution.label !== 'TRANSMITTED') return <div />
   const source = membersById(snapshot)[attribution.source_id]
+  const hidden = week < attribution.first_flag_week
   return (
-    <div className="split-transmitted">
+    <div className={`split-transmitted${hidden ? ' is-hidden' : ''}`} aria-hidden={hidden}>
       <p className="split-source">
         {firstName(member)}: Transmitted from {firstName(source)}
       </p>
