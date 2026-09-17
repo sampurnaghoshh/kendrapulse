@@ -226,9 +226,9 @@ above 0.9. **No input in the search reached it.** What the demo now shows, exact
 | member | label | flagged | same cause | agreement | before tuning |
 | --- | --- | ---: | ---: | ---: | --- |
 | Mamta Kisku m010 | INDEX | 50 of 50 | 50 | 1.00 | 50 of 50 |
-| Rani Kisku m012 | TRANSMITTED, week 5 | 27 of 50 | 27 | 1.00 | 12 of 50 |
+| Rani Kisku m014 | TRANSMITTED, week 5 | 27 of 50 | 27 | 1.00 | 12 of 50 |
 | Kamala Murmu m011 | TRANSMITTED, week 7 | 28 of 50 | 28 | 1.00 | 23 of 50 |
-| Kavita Hansda m014 | TRANSMITTED, week 8 | 22 of 50 | 21 | 0.95 | 12 of 50 |
+| Kavita Hansda m012 | TRANSMITTED, week 8 | 22 of 50 | 21 | 0.95 | 12 of 50 |
 | Anita Kisku m002 | INDEPENDENT | 37 of 50 | 36 | 0.97 | 37 of 50 |
 | Savita Bai m004 | TRANSMITTED from m002, week 12 | 12 of 50 | 12 | 1.00 | 11 of 50 |
 
@@ -420,13 +420,38 @@ marginality. If none of the three works, say so in the video rather than moving 
   | --- | --- | --- |
   | m010 | Mamta Kisku (index) | Lakshmi Gowda |
   | m011 | Kamala Murmu | Savitha Bhat |
-  | m012 | Rani Kisku | Latha Gowda |
-  | m014 | Kavita Hansda | Roopa Kamath |
+  | m012 | Kavita Hansda | Roopa Kamath |
+  | m014 | Rani Kisku | Latha Gowda |
   | m002 | Anita Kisku (independent) | Meena Gowda |
   | m004 | Savita Bai | Suma Naik |
 
   Watch in the video: three of the six flagged members share the surname Gowda (it took
   Kisku's position, which was common in the old roster). Harmless, but say first names.
+
+## Phase 5 part 1: the static snapshot
+
+`scripts/export_snapshot.py` writes `frontend/public/demo_snapshot.json` (about 512 KB, floats
+at 3 decimals) from `demo/snapshot.py::build_snapshot()`. It is `build_story()` plus:
+
+- `counterfactual_worlds[member_id]`: `{label, kind, removed_member_id, title, weeks,
+  ever_flagged_by_week}`. TRANSMITTED: `kind = without_source`, reality minus her source's
+  shocks AND negative trend. INDEX and INDEPENDENT: `kind = only_own_causes`, the world step 1
+  flagged her in. Built by `sim.attribution.label_worlds` on the story's own draws. A test
+  rebuilds each one from scratch (fresh scenario, fresh draws, shocks filtered and trends zeroed
+  by hand) and requires identical weeks.
+- `fix_replays[i]`: `{rank, description, intervention, weeks, ever_flagged_by_week}`. The weeks
+  are MOVED here from `smallest_fix.ranked[i]` and `smallest_fix.applied` so the file carries
+  each replay once; `applied.replay_rank = 1` points at it.
+- `ever_flagged_by_week[member_id]`: 12 booleans, the persistent ring.
+- `validation`: same subset and all observed tables as counts, `what_this_is`, prediction.
+- `meta`: `generated_at`, `git_commit` (the HEAD it was exported from, so one commit behind the
+  commit that contains the file), seeds.
+
+`demo/story.py::setup_world(config)` is now the one place a config becomes (scenario, draws,
+shocks), shared by the story and the snapshot.
+
+Two worlds note for Phase 6: for the three k2 peers the right panel is the same world (without
+Lakshmi), so the view can be drawn once per source rather than once per member.
 
 ## Frontend
 

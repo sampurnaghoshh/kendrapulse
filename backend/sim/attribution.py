@@ -424,6 +424,37 @@ def attribute(scenario, shocks, draws, params=DEFAULT, as_of_week=None, interven
     return records
 
 
+def label_worlds(scenario, shocks, draws, records, params=DEFAULT, interventions=()):
+    """The one counterfactual world each label rests on, for the Two worlds view.
+
+    TRANSMITTED: the actual world minus her SOURCE's causes (shocks and negative trend). The
+    difference between it and reality is exactly what the source did to her.
+    INDEX and INDEPENDENT: the world holding only HER OWN causes, the world step 1 of the
+    procedure flagged her in.
+
+    Returns {member_id: {kind, removed_member_id, run}}; `run` is None for a transmitted
+    member with no single source. Every world shares the `draws` passed in, like `attribute`.
+    """
+    worlds = _Worlds(scenario, shocks, draws, params, interventions)
+    out = {}
+    for record in records:
+        member_id = record["member_id"]
+        if record["label"] == TRANSMITTED:
+            source_id = record["source_id"]
+            out[member_id] = {
+                "kind": "without_source",
+                "removed_member_id": source_id,
+                "run": worlds.without(source_id) if source_id is not None else None,
+            }
+        else:
+            out[member_id] = {
+                "kind": "only_own_causes",
+                "removed_member_id": None,
+                "run": worlds.only(member_id),
+            }
+    return out
+
+
 # ---------------------------------------------------------------------------------------
 # Observation anchored attribution (validation only)
 # ---------------------------------------------------------------------------------------

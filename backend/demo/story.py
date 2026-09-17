@@ -328,16 +328,12 @@ def load_config(path=CONFIG_PATH):
 # ---------------------------------------------------------------------------------------
 
 
-def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
-    """Run the seeded demo end to end and return every number the story tells.
+def setup_world(config, params=DEFAULT):
+    """(scenario, draws, shocks) for a config, built exactly one way.
 
-    Deterministic: the only randomness is the two seeds in the config, and the draws array is
-    built once and shared by every run in here, including the smallest fix replays and the
-    counterfactuals inside attribution.
+    `build_story` and `scripts/export_snapshot.py` both call this, so the snapshot's extra
+    worlds are replayed on the very roster, shocks and dice the story was told with.
     """
-    started = time.perf_counter()
-    config = load_config(config_path) if config is None else config
-
     scenario = generate_scenario(
         n_kendras=config["generator"]["n_kendras"],
         members_per_kendra=config["generator"]["members_per_kendra"],
@@ -345,7 +341,6 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
         params=params,
     )
     scenario = apply_member_overrides(scenario, config.get("member_overrides"))
-    # ONE draws array for the whole story. Every world below is handed this object.
     draws = make_draws(scenario.n_members, params, seed=config["draws_seed"])
     shocks = [
         Shock(
@@ -358,6 +353,21 @@ def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
         )
         for s in config["shocks"]
     ]
+    return scenario, draws, shocks
+
+
+def build_story(config=None, params=DEFAULT, config_path=CONFIG_PATH):
+    """Run the seeded demo end to end and return every number the story tells.
+
+    Deterministic: the only randomness is the two seeds in the config, and the draws array is
+    built once and shared by every run in here, including the smallest fix replays and the
+    counterfactuals inside attribution.
+    """
+    started = time.perf_counter()
+    config = load_config(config_path) if config is None else config
+
+    # ONE draws array for the whole story. Every world below is handed this object.
+    scenario, draws, shocks = setup_world(config, params)
     decision_week = config["decision_week"]
 
     # 1. The opening frame: nothing planted yet, so R potential is the only number there is.
