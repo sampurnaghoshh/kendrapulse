@@ -347,7 +347,7 @@ members unexplained in threshold mode.
 ## Privacy by design
 
 * **Officer only view.** The screen is for the loan officer. Nothing implies that group members
-  see each other's status, and the app says "Visible to the loan officer only".
+  see each other's status, and the header says "Officer view only. Never shown to the group."
 * **Supportive actions only.** The only actions are a pause or a smaller installment. There is no
   penalty, no ranking of borrowers and no action against a member.
 * The screen shows first names only. All names are synthetic.

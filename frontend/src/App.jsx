@@ -177,13 +177,13 @@ export default function App() {
         >
           How we tested it
         </button>
-        {/* A statement, not a control: plain text with a drawn lock, nothing to click or tab to. */}
+        {/* A statement, not a control: plain text with a drawn eye, nothing to click or tab to. */}
         <span className="private-tag">
-          <svg className="lock" viewBox="0 0 12 14" aria-hidden="true">
-            <path className="lock-shackle" d="M3.5 6 V4 a2.5 2.5 0 0 1 5 0 V6" />
-            <rect className="lock-body" x="1.5" y="6" width="9" height="7" rx="1.5" />
+          <svg className="eye" viewBox="0 0 16 10" aria-hidden="true">
+            <path className="eye-outline" d="M1 5 C3.5 1 12.5 1 15 5 C12.5 9 3.5 9 1 5 Z" />
+            <circle className="eye-pupil" cx="8" cy="5" r="2" />
           </svg>
-          Visible to the loan officer only
+          Officer view only. Never shown to the group.
         </span>
       </header>
 
