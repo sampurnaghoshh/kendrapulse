@@ -20,6 +20,29 @@ export function kendraLabel(kendraId) {
   return `Kendra ${Number(kendraId.slice(1)) + 1}`
 }
 
+// Snapshot sentences are written by the backend with full names and internal ids. This
+// rewrites them for the screen: full names become first names, "k2" becomes "Kendra 3",
+// and any hyphen or dash becomes a space (UI copy has none; this is a guard, not a fix).
+export function displayText(snapshot, text) {
+  const members = [...snapshot.scenario.members].sort((a, b) => b.name.length - a.name.length)
+  let out = text
+  for (const m of members) out = out.split(m.name).join(firstName(m))
+  const byId = membersById(snapshot)
+  out = out.replace(/\bm\d{3}\b/g, (id) => (byId[id] ? firstName(byId[id]) : 'a member'))
+  out = out.replace(/\bk(\d+)\b/g, (id) => kendraLabel(id))
+  return out.replace(/\s*[-‐-―]\s*/g, ' ')
+}
+
+export function attributionFor(snapshot, memberId) {
+  return snapshot.attribution.find((a) => a.member_id === memberId) ?? null
+}
+
+export const LABEL_TEXT = {
+  INDEX: 'Index case',
+  TRANSMITTED: 'Transmitted',
+  INDEPENDENT: 'Independent',
+}
+
 export function membersById(snapshot) {
   return Object.fromEntries(snapshot.scenario.members.map((m) => [m.id, m]))
 }

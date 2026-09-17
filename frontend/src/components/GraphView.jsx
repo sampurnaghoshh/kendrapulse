@@ -77,7 +77,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect 
               aria-label={`${firstName(m)}, ${status}${ringed ? ', flagged at some point so far' : ''}`}
               onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(m.id)}
             >
-              {selected && <circle className="node-select" r={NODE_R + 12} />}
+              {selected && <circle className="node-select" r={NODE_R + 13} />}
               {ringed && <circle className="node-ring" r={NODE_R + 6} />}
               <circle className="node-body" r={NODE_R} />
               <text className="node-mark" y={6} textAnchor="middle">

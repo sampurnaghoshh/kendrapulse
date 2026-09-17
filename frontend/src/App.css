@@ -211,9 +211,9 @@ body {
 }
 
 .node-select {
-  fill: none;
+  fill: var(--accent-soft);
   stroke: var(--accent);
-  stroke-width: 3;
+  stroke-width: 2;
 }
 
 .node:focus-visible .node-body {
@@ -343,4 +343,107 @@ body {
     border-top: 1px solid var(--line);
     padding: 14px 16px;
   }
+}
+
+/* Right panel cards */
+.panel-hint {
+  margin: 4px 2px;
+  color: var(--muted);
+}
+
+.card {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.explanation-card {
+  cursor: pointer;
+}
+
+.explanation-card.is-selected {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-head h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.card-kendra {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.label-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.card-close {
+  margin-left: auto;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.card-sentence {
+  margin: 8px 0 0;
+}
+
+.card-sentence.quiet {
+  color: var(--muted);
+}
+
+.stability-badge {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--ground);
+}
+
+.stability-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.stability-num {
+  min-width: 64px;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stability-num .of {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.stability-what {
+  font-size: 14px;
+}
+
+.stability-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
 }
