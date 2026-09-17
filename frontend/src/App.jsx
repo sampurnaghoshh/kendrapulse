@@ -4,6 +4,7 @@ import ExplanationCard from './components/ExplanationCard.jsx'
 import OfficerNote from './components/OfficerNote.jsx'
 import SmallestFixPanel from './components/SmallestFixPanel.jsx'
 import TwoWorldsView from './components/TwoWorldsView.jsx'
+import ValidationView from './components/ValidationView.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
 import {
   attributionFor,
@@ -41,6 +42,8 @@ export default function App() {
   // Side by side view, same shape as `alternate`. Kept separate so opening and closing it
   // leaves the single graph exactly as it was (What if, applied fix or reality).
   const [split, setSplit] = useState(null)
+  // "How we tested it" opens at the top of the side panel, never over the graph.
+  const [validationOpen, setValidationOpen] = useState(false)
 
   const panelRef = useRef(null)
   const fixRef = useRef(null)
@@ -143,6 +146,11 @@ export default function App() {
     })
   }
 
+  function toggleValidation() {
+    setValidationOpen((open) => !open)
+    panelRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function togglePlay() {
     // Pressing play on the last week replays the quarter from the start.
     if (!playing && week >= horizon) setWeek(1)
@@ -158,10 +166,17 @@ export default function App() {
   const subjectId = splitView ? (selectedId ?? splitView.targetId) : null
 
   return (
-    <div className={`app${splitView ? ' is-split' : ''}`}>
+    <div className={`app${splitView && !validationOpen ? ' is-split' : ''}`}>
       <header className="app-header">
         <h1>KendraPulse</h1>
         <span className="branch">Davanagere branch</span>
+        <button
+          className={`header-button${validationOpen ? ' is-on' : ''}`}
+          aria-pressed={validationOpen}
+          onClick={toggleValidation}
+        >
+          How we tested it
+        </button>
         <span className="private-tag">Visible to the loan officer only</span>
       </header>
 
@@ -211,14 +226,16 @@ export default function App() {
         </main>
       )}
 
-      {splitView ? (
+      {splitView && !validationOpen ? (
         // Collapsed to a narrow strip so both graphs get the width. Cards keep their state
-        // in the app and come back unchanged on Close.
+        // in the app and come back unchanged on Close. Opening "How we tested it" brings the
+        // panel back beside the two graphs rather than over them.
         <aside className="side-panel is-strip" aria-label="Side panel hidden while side by side">
           <span className="strip-text">Cards return on Close</span>
         </aside>
       ) : (
         <aside className="side-panel" ref={panelRef}>
+          {validationOpen && <ValidationView snapshot={snapshot} onClose={() => setValidationOpen(false)} />}
           <OfficerNote snapshot={snapshot} week={week} />
           {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
           {cards.map((card) => (
