@@ -358,3 +358,45 @@ def test_attribution_is_deterministic(three_labels):
     assert np.array_equal(draws, make_draws(three_labels.n_members, DEFAULT, seed=SEED)), (
         "attribution mutated the draws it was given"
     )
+
+
+# ------------------------------------------------------------------------------------
+# Observation anchored mode (validation only)
+# ------------------------------------------------------------------------------------
+
+
+def test_anchored_mode_agrees_with_the_threshold_labels_where_both_apply(three_labels):
+    """On members this world does flag, shares and crossings should tell the same story. If
+    they did not, the anchored mode would be a different procedure, not the same one
+    extended to members under the line."""
+    from sim.attribution import attribute_anchored
+
+    draws = make_draws(three_labels.n_members, DEFAULT, seed=SEED)
+    shocks = [Shock(type="health", start_week=1, member_id=SHOCKED)]
+    threshold = {r["member_id"]: r for r in attribute(three_labels, shocks, draws, DEFAULT)}
+    anchored = {
+        r["member_id"]: r
+        for r in attribute_anchored(three_labels, shocks, draws, DEFAULT, list(threshold))
+    }
+    for member_id, record in threshold.items():
+        assert anchored[member_id]["label"] == record["label"], member_id
+        assert anchored[member_id]["source_id"] == record["source_id"], member_id
+
+
+def test_anchored_mode_reports_no_signal_instead_of_inventing_a_label(three_labels):
+    """A member with no stress above her floor has nothing to explain. The residual category
+    must survive, or the anchored mode would hide unexplained members by construction."""
+    from sim.attribution import ANCHORED_MIN_EXCESS, NO_SIGNAL, attribute_anchored
+
+    draws = make_draws(three_labels.n_members, DEFAULT, seed=SEED)
+    shocks = [Shock(type="health", start_week=1, member_id=SHOCKED)]
+    records = attribute_anchored(
+        three_labels, shocks, draws, DEFAULT, [m.id for m in three_labels.members]
+    )
+    quiet = [r for r in records if r["excess"] < ANCHORED_MIN_EXCESS]
+    assert quiet, "the far kendra should contain somebody nothing reached"
+    for record in records:
+        assert (record["label"] == NO_SIGNAL) == (record["excess"] < ANCHORED_MIN_EXCESS)
+        if record["own_share"] is not None:
+            assert 0.0 <= record["own_share"] <= 1.0
+            assert record["clipped"] == (record["own_share"] != record["own_share_raw"])

@@ -326,3 +326,50 @@ def test_no_human_readable_string_in_the_report_has_a_hyphen_or_dash(small_repor
     for sentence in prose:
         for dash in DASHES:
             assert dash not in sentence, sentence
+
+
+# ------------------------------------------------------------------------------------
+# Validation fairness: same subsets, both modes, counts
+# ------------------------------------------------------------------------------------
+
+
+def test_the_fairness_subsets_partition_the_observed_members(small_report):
+    fair = small_report["fairness"]
+    assert fair["same_subset"]["n"] + fair["unexplained_subset"]["n"] == fair["all_observed"]["n"]
+    assert fair["all_observed"]["n"] == small_report["totals"]["observed_flagged_members"]
+    assert fair["unexplained_threshold"] == fair["unexplained_subset"]["n"]
+    assert fair["anchored_members"] == fair["unexplained_subset"]["n"]
+
+
+def test_both_modes_are_identical_on_the_members_the_engine_explained(small_report):
+    """The anchored path only touches members the threshold mode could not explain."""
+    same = small_report["fairness"]["same_subset"]
+    assert same["engine_anchored"]["correct"] == same["engine_threshold"]["correct"]
+    assert same["engine_anchored"]["outcomes"]["no_signal"] == 0
+
+
+def test_the_anchored_mode_is_never_unexplained_and_keeps_no_signal_visible(small_report):
+    fair = small_report["fairness"]
+    outcomes = fair["all_observed"]["engine_anchored"]["outcomes"]
+    assert "unexplained" not in outcomes
+    assert sum(outcomes.values()) == fair["all_observed"]["n"]
+    assert outcomes["no_signal"] == fair["no_signal_anchored"]
+
+
+def test_per_label_results_are_counts_with_their_denominator(small_report):
+    for subset in ("same_subset", "unexplained_subset", "all_observed"):
+        block = small_report["fairness"][subset]
+        for label in (INDEX, TRANSMITTED, INDEPENDENT):
+            for party in ("engine_threshold", "engine_anchored", "baseline"):
+                entry = block["per_true_label"][label][party]
+                assert set(entry) == {"correct", "of", "rate"}
+                assert 0 <= entry["correct"] <= entry["of"]
+        assert sum(block["per_true_label"][l]["baseline"]["of"] for l in (INDEX, TRANSMITTED, INDEPENDENT)) == block["n"]
+
+
+def test_the_anchored_constants_are_the_preregistered_ones(small_report):
+    constants = small_report["fairness"]["constants"]
+    assert constants["anchored_own_share"] == 0.5
+    assert constants["anchored_sole_share"] == 0.5
+    clips = small_report["fairness"]
+    assert clips["own_share_clipped"] == clips["own_share_clipped_low"] + clips["own_share_clipped_high"]

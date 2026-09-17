@@ -422,3 +422,93 @@ def attribute(scenario, shocks, draws, params=DEFAULT, as_of_week=None, interven
     records = [attribute_member(worlds, mid, as_of_week) for mid in flagged]
     records.sort(key=lambda r: (r["first_flag_week"], r["member_id"]))
     return records
+
+
+# ---------------------------------------------------------------------------------------
+# Observation anchored attribution (validation only)
+# ---------------------------------------------------------------------------------------
+
+# Both pinned in NEXT.md ("Validation fairness", item 2) BEFORE the n=500 run, and not to be
+# tuned against its output. "Most of it" is the only defensible reading of either.
+ANCHORED_OWN_SHARE = 0.5
+ANCHORED_SOLE_SHARE = 0.5
+# Below this much excess stress there is nothing to explain, and the member is reported as
+# no_signal instead of being handed a label.
+ANCHORED_MIN_EXCESS = 0.01
+
+NO_SIGNAL = "no_signal"
+
+
+def attribute_anchored(scenario, shocks, draws, params=DEFAULT, member_ids=(), as_of_week=None):
+    """Label members an officer OBSERVED as flagged, even where this world does not flag them.
+
+    Attribution explains a flag; it should not have to re predict it first. For a member this
+    world leaves under `amber`, every threshold test in `attribute` is vacuously false, so here
+    each crossing becomes a SHARE of the stress this world does see:
+
+        s_floor   her peak stress with no shocks and every negative trend zeroed
+        excess    s_actual - s_floor               the stress there is to explain
+        own_share (s_own - s_floor) / excess       how much of it her own life accounts for
+
+    own_share >= 0.5 means INDEX or INDEPENDENT, split by whether removing her own shocks takes
+    away most of that own share. Otherwise TRANSMITTED, with the source ranked exactly as in
+    `attribute` (by drop in peak stress, which never needed a threshold), and `sole_source`
+    meaning that removing it alone removes at least half of `excess`.
+
+    own_share can fall outside [0, 1]: stress is not additive (a neighbour's shock can stop
+    her covering someone, so her own world can be WORSE than the actual one). It is clipped to
+    [0, 1] and every clip is reported. Clipping never changes a label, because the only test
+    on it is against 0.5; it only keeps the logged number readable as a share.
+
+    Each record: {member_id, label, source_id, sole_source, excess, own_share, own_share_raw,
+    clipped}. `label` is NO_SIGNAL when excess < ANCHORED_MIN_EXCESS.
+    """
+    as_of_week = params.horizon_weeks if as_of_week is None else as_of_week
+    worlds = _Worlds(scenario, shocks, draws, params)
+    actual = worlds.actual()
+    floor_world = worlds.run(set(), set())
+
+    records = []
+    for member_id in member_ids:
+        s_actual = actual.peak_stress(member_id, as_of_week)
+        s_floor = floor_world.peak_stress(member_id, as_of_week)
+        excess = s_actual - s_floor
+        record = {
+            "member_id": member_id,
+            "label": NO_SIGNAL,
+            "source_id": None,
+            "sole_source": None,
+            "excess": excess,
+            "own_share": None,
+            "own_share_raw": None,
+            "clipped": False,
+        }
+        records.append(record)
+        if excess < ANCHORED_MIN_EXCESS:
+            continue
+
+        s_own = worlds.only(member_id).peak_stress(member_id, as_of_week)
+        raw = (s_own - s_floor) / excess
+        own_share = min(max(raw, 0.0), 1.0)
+        record.update(own_share=own_share, own_share_raw=raw, clipped=own_share != raw)
+
+        if own_share >= ANCHORED_OWN_SHARE:
+            record["source_id"] = member_id
+            own_part = s_own - s_floor  # > 0 here, since own_share >= 0.5 and excess >= 0.01
+            if worlds.own_shocks(member_id):
+                s_no_shock = worlds.run(set(), {member_id}).peak_stress(member_id, as_of_week)
+                shock_share = (s_own - s_no_shock) / own_part
+                record["label"] = INDEX if shock_share >= ANCHORED_OWN_SHARE else INDEPENDENT
+            else:
+                record["label"] = INDEPENDENT
+            continue
+
+        record["label"] = TRANSMITTED
+        ranked = _rank_sources(worlds, member_id, as_of_week, s_actual)
+        if ranked:
+            top = ranked[0]
+            record["source_id"] = top["member_id"]
+            record["sole_source"] = top["drop"] >= ANCHORED_SOLE_SHARE * excess
+        else:
+            record["sole_source"] = False
+    return records

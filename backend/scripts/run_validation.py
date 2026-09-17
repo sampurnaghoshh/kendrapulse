@@ -54,6 +54,49 @@ def print_block(title, block):
     print(f"      {'overall accuracy':<32} {pct(block['overall_accuracy']):>6}")
 
 
+def x_of_y(entry):
+    """Counts first. A percentage only ever appears next to its denominator."""
+    if not entry["of"]:
+        return "none"
+    return f"{entry['correct']} of {entry['of']} ({pct(entry['rate'])})"
+
+
+def print_fairness(report):
+    fair = report["fairness"]
+    rule()
+    print("FAIRNESS: engine and baseline on the SAME members, threshold and anchored modes")
+    rule()
+    constants = fair["constants"]
+    print(f"  anchored constants fixed before the run: own share {constants['anchored_own_share']}, "
+          f"sole share {constants['anchored_sole_share']}, "
+          f"no signal below {constants['anchored_min_excess']}")
+    print()
+    parties = (("engine_threshold", "engine, threshold"), ("engine_anchored", "engine, anchored"),
+               ("baseline", "baseline"))
+    for subset in ("same_subset", "unexplained_subset", "all_observed"):
+        block = fair[subset]
+        print(f"  {subset} ({block['n']} members)")
+        for key, name in parties:
+            print(f"      {name:<20} {x_of_y(block[key]):>24}")
+        for label in ("INDEX", "TRANSMITTED", "INDEPENDENT"):
+            row = block["per_true_label"][label]
+            print(f"      {label:<14}" + "".join(f"{x_of_y(row[key]):>24}" for key, _ in parties))
+        print()
+    print(f"  unexplained (threshold)   {fair['unexplained_threshold']}")
+    print(f"  no signal (anchored)      {fair['no_signal_anchored']}")
+    print(f"  own share clipped         {fair['own_share_clipped']} of {fair['anchored_members']} "
+          f"anchored members ({fair['own_share_clipped_low']} below 0, "
+          f"{fair['own_share_clipped_high']} above 1)")
+    prediction = fair["prediction"]
+    print(f"  prediction: {prediction['statement']}")
+    print(f"      baseline same subset {pct(prediction['baseline_same_subset'])}, "
+          f"all observed {pct(prediction['baseline_all_observed'])}: "
+          f"{'HELD' if prediction['held'] else 'DID NOT HOLD'}")
+    print(f"      baseline at or above engine on the same subset: "
+          f"{'yes' if prediction['baseline_at_or_above_engine_on_same_subset'] else 'no'}")
+    print()
+
+
 def summarise(report):
     config, totals = report["config"], report["totals"]
 
@@ -149,6 +192,7 @@ def main(argv=None):
 
     print()
     summarise(report)
+    print_fairness(report)
     rule()
     print(f"report written to {args.out}")
     print(f"{args.n} scenarios in {built - started:.1f}s "

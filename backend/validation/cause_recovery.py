@@ -43,7 +43,18 @@ from dataclasses import replace
 
 import numpy as np
 
-from sim.attribution import INDEPENDENT, INDEX, TRANSMITTED, attribute, expand_shocks
+from sim.attribution import (
+    ANCHORED_MIN_EXCESS,
+    ANCHORED_OWN_SHARE,
+    ANCHORED_SOLE_SHARE,
+    INDEPENDENT,
+    INDEX,
+    NO_SIGNAL,
+    TRANSMITTED,
+    attribute,
+    attribute_anchored,
+    expand_shocks,
+)
 from sim.engine import Shock, make_draws, simulate
 from sim.generator import generate_scenario
 from sim.params import DEFAULT, PERTURBABLE
@@ -54,6 +65,8 @@ WRONG_SOURCE = "wrong_source"  # right that it was transmitted, named the wrong 
 WRONG_LABEL = "wrong_label"
 UNEXPLAINED = "unexplained"  # the engine's own world never flags her, so it cannot explain her
 OUTCOMES = (CORRECT, WRONG_SOURCE, WRONG_LABEL, UNEXPLAINED)
+# Anchored mode never says `unexplained`; its honest remainder is `no_signal` instead.
+ANCHORED_OUTCOMES = (CORRECT, WRONG_SOURCE, WRONG_LABEL, NO_SIGNAL)
 
 LABELS = (INDEX, TRANSMITTED, INDEPENDENT)
 
@@ -217,6 +230,17 @@ def run_scenario(k, base_seed=0, params=DEFAULT, n_kendras=5, members_per_kendra
     }
     engine_flagged = set(engine_records)
 
+    # ---- ENGINE, ANCHORED: the same engine, asked to explain the flags it did not see ----
+    # Only the members its own world leaves green go through the anchored path. Everyone it
+    # does flag keeps the threshold answer, so the two modes differ on exactly one slice.
+    unexplained_ids = [mid for mid in observed if mid not in engine_flagged]
+    anchored_records = {
+        r["member_id"]: r
+        for r in attribute_anchored(
+            engine_scenario, shocks, engine_draws, engine_params, unexplained_ids
+        )
+    }
+
     # ---- BASELINE: the event log and the shock list, no simulation --------------------
     baseline = baseline_labels(scenario, shocks, truth_run, observed)
 
@@ -228,6 +252,16 @@ def run_scenario(k, base_seed=0, params=DEFAULT, n_kendras=5, members_per_kendra
     rows = []
     for member_id in observed:
         truth_record = truth_records[member_id]
+        anchored = anchored_records.get(member_id)
+        if anchored is None:
+            anchored_label = engine_records[member_id]["label"]
+            anchored_source_id = engine_records[member_id]["source_id"]
+            anchored_outcome = classify(truth_record, engine_records[member_id], engine_flagged)
+        else:
+            anchored_label, anchored_source_id = anchored["label"], anchored["source_id"]
+            anchored_outcome = (
+                NO_SIGNAL if anchored["label"] == NO_SIGNAL else classify(truth_record, anchored)
+            )
         rows.append({
             "scenario": k,
             "generator_seed": generator_seed,
@@ -245,6 +279,13 @@ def run_scenario(k, base_seed=0, params=DEFAULT, n_kendras=5, members_per_kendra
             # always has an answer, which is part of what makes it a fair bar and part of
             # what makes it wrong more often.
             "baseline_outcome": classify(truth_record, baseline[member_id]),
+            "anchored_label": anchored_label,
+            "anchored_source_id": anchored_source_id,
+            "anchored_outcome": anchored_outcome,
+            "anchored_path": anchored is not None,
+            "own_share": anchored["own_share"] if anchored else None,
+            "own_share_raw": anchored["own_share_raw"] if anchored else None,
+            "own_share_clipped": bool(anchored["clipped"]) if anchored else False,
             "n_shocks": len(shocks),
             "near_simultaneous_shocks": near_simultaneous,
         })
@@ -352,6 +393,107 @@ def _failures(rows, which, limit=5):
     return out
 
 
+def _correct_of(rows, which):
+    """"x of y" as a pair, so no percentage is ever quoted without its denominator."""
+    correct = sum(row[f"{which}_outcome"] == CORRECT for row in rows)
+    return {"correct": correct, "of": len(rows), "rate": correct / len(rows) if rows else None}
+
+
+def _outcome_counts(rows, which, outcomes):
+    counts = {outcome: 0 for outcome in outcomes}
+    for row in rows:
+        counts[row[f"{which}_outcome"]] += 1
+    return counts
+
+
+def _subset(rows):
+    """One subset, three parties, counts first. Per true label as x of y."""
+    return {
+        "n": len(rows),
+        "engine_threshold": {
+            **_correct_of(rows, "engine"),
+            "outcomes": _outcome_counts(rows, "engine", OUTCOMES),
+        },
+        "engine_anchored": {
+            **_correct_of(rows, "anchored"),
+            "outcomes": _outcome_counts(rows, "anchored", ANCHORED_OUTCOMES),
+        },
+        "baseline": {
+            **_correct_of(rows, "baseline"),
+            "outcomes": _outcome_counts(rows, "baseline", OUTCOMES),
+        },
+        "per_true_label": {
+            label: {
+                which: _correct_of([r for r in rows if r["truth_label"] == label], key)
+                for which, key in (
+                    ("engine_threshold", "engine"),
+                    ("engine_anchored", "anchored"),
+                    ("baseline", "baseline"),
+                )
+            }
+            for label in LABELS
+        },
+    }
+
+
+def fairness(rows):
+    """The comparison NEXT.md ("Validation fairness") says is the fair one.
+
+    same_subset         members the engine explained in threshold mode. The ONLY apples to
+                        apples comparison, and the headline.
+    unexplained_subset  members it could not. Threshold scores 0 here by definition; what
+                        matters is how the baseline and the anchored mode do.
+    all_observed        everyone, as before, kept so the views can be compared.
+
+    The pre registered prediction, written before the run: the baseline on same_subset comes
+    out ABOVE its own all_observed accuracy, because a member the engine's world flags is a
+    member well clear of the threshold, which is also an easy member for the baseline.
+    """
+    same = [r for r in rows if r["engine_outcome"] != UNEXPLAINED]
+    unexplained = [r for r in rows if r["engine_outcome"] == UNEXPLAINED]
+    anchored = [r for r in rows if r["anchored_path"]]
+    blocks = {
+        "same_subset": _subset(same),
+        "unexplained_subset": _subset(unexplained),
+        "all_observed": _subset(rows),
+    }
+    base_same = blocks["same_subset"]["baseline"]["rate"]
+    base_all = blocks["all_observed"]["baseline"]["rate"]
+    engine_same = blocks["same_subset"]["engine_threshold"]["rate"]
+    return {
+        "constants": {
+            "anchored_own_share": ANCHORED_OWN_SHARE,
+            "anchored_sole_share": ANCHORED_SOLE_SHARE,
+            "anchored_min_excess": ANCHORED_MIN_EXCESS,
+            "fixed_before_the_run": True,
+        },
+        **blocks,
+        "unexplained_threshold": len(unexplained),
+        "no_signal_anchored": sum(r["anchored_outcome"] == NO_SIGNAL for r in rows),
+        "anchored_members": len(anchored),
+        "own_share_clipped": sum(r["own_share_clipped"] for r in anchored),
+        "own_share_clipped_low": sum(
+            r["own_share_clipped"] and r["own_share_raw"] < 0 for r in anchored
+        ),
+        "own_share_clipped_high": sum(
+            r["own_share_clipped"] and r["own_share_raw"] > 1 for r in anchored
+        ),
+        "prediction": {
+            "statement": (
+                "baseline accuracy on same_subset is above baseline accuracy on all_observed"
+            ),
+            "baseline_same_subset": base_same,
+            "baseline_all_observed": base_all,
+            "held": (
+                base_same is not None and base_all is not None and base_same > base_all
+            ),
+            "baseline_at_or_above_engine_on_same_subset": (
+                base_same is not None and engine_same is not None and base_same >= engine_same
+            ),
+        },
+    }
+
+
 def build_report(n_scenarios=500, base_seed=0, params=DEFAULT, progress=None):
     """Run `n_scenarios` and return the whole report as a plain dict.
 
@@ -412,6 +554,7 @@ def build_report(n_scenarios=500, base_seed=0, params=DEFAULT, progress=None):
             "engine": _per_label(rows, "engine"),
             "baseline": _per_label(rows, "baseline"),
         },
+        "fairness": fairness(rows),
         "confusion_truth_by_engine": _confusion(rows),
         "hard_cases": {
             "definition": (
