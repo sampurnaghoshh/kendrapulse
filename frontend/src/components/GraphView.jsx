@@ -1,15 +1,18 @@
-import { firstName, kendraGeometry, kendraLabel, membersById, rChipText } from '../snapshot.js'
+import { edgeKey, firstName, kendraGeometry, kendraLabel, rChipText } from '../snapshot.js'
 
 // Layout coordinates come from the backend, so every view draws members in the same place.
 // The viewBox is fixed around that layout (plus room for labels) rather than measured, so
-// nothing jumps when the week changes.
-const VIEWBOX = '-470 -500 940 880'
+// nothing jumps when the week or the world changes.
+const VIEWBOX = '-470 -495 940 875'
 const NODE_R = 20
 
-export default function GraphView({ snapshot, week, selectedId, onSelect }) {
-  const { layout, edges } = snapshot.scenario
-  const members = snapshot.scenario.members
-  const byId = membersById(snapshot)
+// Status must not rely on colour alone: amber carries one mark, red two.
+const STATUS_MARK = { green: '', amber: '!', red: '!!' }
+
+export default function GraphView({ snapshot, world, week, selectedId, onSelect }) {
+  const { layout, edges, members } = snapshot.scenario
+  const states = world.weeks[String(week)]
+  const pulsing = new Set(world.coverEdges(week))
 
   // Only guarantee edges are drawn: they are the channel cover travels along. Shared income
   // and shared lender links cross the whole branch and would bury the picture.
@@ -21,8 +24,29 @@ export default function GraphView({ snapshot, week, selectedId, onSelect }) {
         {guaranteeEdges.map((e) => {
           const [x1, y1] = layout[e.from_id]
           const [x2, y2] = layout[e.to_id]
-          return <line key={`${e.from_id}_${e.to_id}`} className="edge" x1={x1} y1={y1} x2={x2} y2={y2} />
+          return <line key={edgeKey(e.from_id, e.to_id)} className="edge" x1={x1} y1={y1} x2={x2} y2={y2} />
         })}
+      </g>
+
+      {/* Pulses sit in their own layer. The week is part of the key so React mounts a fresh
+          element each week and the CSS animation plays again even on the same edge. */}
+      <g className="pulses">
+        {guaranteeEdges
+          .filter((e) => pulsing.has(edgeKey(e.from_id, e.to_id)))
+          .map((e) => {
+            const [x1, y1] = layout[e.from_id]
+            const [x2, y2] = layout[e.to_id]
+            return (
+              <line
+                key={`${edgeKey(e.from_id, e.to_id)}@${week}`}
+                className="edge-pulse"
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+              />
+            )
+          })}
       </g>
 
       <g className="kendras">
@@ -39,21 +63,27 @@ export default function GraphView({ snapshot, week, selectedId, onSelect }) {
       <g className="nodes">
         {members.map((m) => {
           const [x, y] = layout[m.id]
+          const status = states[m.id].status
+          const ringed = world.everFlagged[m.id][week - 1]
           const selected = m.id === selectedId
           return (
             <g
               key={m.id}
-              className={`node${selected ? ' is-selected' : ''}`}
+              className={`node status-${status}${selected ? ' is-selected' : ''}`}
               transform={`translate(${x} ${y})`}
               onClick={() => onSelect(m.id)}
               role="button"
               tabIndex={0}
-              aria-label={firstName(byId[m.id])}
+              aria-label={`${firstName(m)}, ${status}${ringed ? ', flagged at some point so far' : ''}`}
               onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && onSelect(m.id)}
             >
-              {selected && <circle className="node-select" r={NODE_R + 11} />}
+              {selected && <circle className="node-select" r={NODE_R + 12} />}
+              {ringed && <circle className="node-ring" r={NODE_R + 6} />}
               <circle className="node-body" r={NODE_R} />
-              <text className="node-name" y={NODE_R + 19} textAnchor="middle">
+              <text className="node-mark" y={6} textAnchor="middle">
+                {STATUS_MARK[status]}
+              </text>
+              <text className="node-name" y={NODE_R + 21} textAnchor="middle">
                 {firstName(m)}
               </text>
             </g>
@@ -74,5 +104,27 @@ function RChip({ x, y, text }) {
         {text}
       </text>
     </g>
+  )
+}
+
+export function GraphLegend() {
+  return (
+    <ul className="legend">
+      <li>
+        <span className="swatch status-green" /> On track
+      </li>
+      <li>
+        <span className="swatch status-amber">!</span> Watch
+      </li>
+      <li>
+        <span className="swatch status-red">!!</span> Stressed
+      </li>
+      <li>
+        <span className="swatch ring" /> Flagged at some point so far
+      </li>
+      <li>
+        <span className="pulse-sample" /> Guarantee cover paid this week
+      </li>
+    </ul>
   )
 }

@@ -140,10 +140,64 @@ body {
   outline: none;
 }
 
+.edge-pulse {
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  animation: pulse 700ms ease-out 1 forwards;
+}
+
+/* One flash per week, settling to a visible line so a paused frame still shows the cover. */
+@keyframes pulse {
+  0% {
+    stroke-width: 11;
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    stroke-width: 4;
+    opacity: 0.75;
+  }
+}
+
 .node-body {
-  fill: #dfe3e5;
   stroke: #ffffff;
   stroke-width: 2;
+  transition: fill 250ms ease;
+}
+
+.status-green .node-body {
+  fill: var(--green);
+}
+
+.status-amber .node-body {
+  fill: var(--amber);
+}
+
+.status-red .node-body {
+  fill: var(--red);
+}
+
+.node-mark {
+  font-size: 19px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.status-amber .node-mark {
+  fill: var(--ink);
+}
+
+.status-red .node-mark {
+  fill: #ffffff;
+}
+
+.node-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
 }
 
 /* The halo (stroke painted under the fill) keeps names readable where edges cross them. */
@@ -165,6 +219,59 @@ body {
 .node:focus-visible .node-body {
   stroke: var(--accent);
   stroke-width: 3;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 2px 8px 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.swatch.status-green {
+  background: var(--green);
+}
+
+.swatch.status-amber {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.swatch.status-red {
+  background: var(--red);
+  color: #fff;
+}
+
+.swatch.ring {
+  border: 2px solid var(--ink);
+}
+
+.pulse-sample {
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 /* Week slider */

@@ -1,15 +1,21 @@
-import { useEffect, useState } from 'react'
-import GraphView from './components/GraphView.jsx'
+import { useEffect, useMemo, useState } from 'react'
+import GraphView, { GraphLegend } from './components/GraphView.jsx'
 import WeekSlider from './components/WeekSlider.jsx'
-import { loadSnapshot } from './snapshot.js'
+import { loadSnapshot, realityWorld } from './snapshot.js'
 
 // About 700 ms per week: slow enough to read a colour change, fast enough for a video.
 const MS_PER_WEEK = 700
 
+function initialWeek() {
+  const asked = Number(new URLSearchParams(window.location.search).get('week'))
+  return Number.isInteger(asked) && asked >= 1 && asked <= 12 ? asked : 1
+}
+
 export default function App() {
   const [snapshot, setSnapshot] = useState(null)
   const [error, setError] = useState(null)
-  const [week, setWeek] = useState(1)
+  // ?week=7 opens on that week, handy for rehearsing one moment of the recording.
+  const [week, setWeek] = useState(initialWeek)
   const [playing, setPlaying] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
 
@@ -18,6 +24,7 @@ export default function App() {
   }, [])
 
   const horizon = snapshot?.params.horizon_weeks ?? 12
+  const reality = useMemo(() => snapshot && realityWorld(snapshot), [snapshot])
 
   // Advance one week per tick.
   useEffect(() => {
@@ -49,7 +56,14 @@ export default function App() {
       </header>
 
       <main className="graph-pane">
-        <GraphView snapshot={snapshot} week={week} selectedId={selectedId} onSelect={setSelectedId} />
+        <GraphView
+          snapshot={snapshot}
+          world={reality}
+          week={week}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+        />
+        <GraphLegend />
       </main>
 
       <aside className="side-panel" />

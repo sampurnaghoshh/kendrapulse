@@ -35,6 +35,29 @@ export function kendraGeometry(snapshot) {
   })
 }
 
+// A "world" is what the graph draws: weekly member states plus the persistent ring.
+// Reality is the actual run; step 4 adds the counterfactual worlds in the same shape.
+export function realityWorld(snapshot) {
+  return {
+    weeks: snapshot.actual.weeks,
+    everFlagged: snapshot.ever_flagged_by_week,
+    coverEdges: (week) => coverEdgesFromLog(snapshot, week),
+  }
+}
+
+// Guarantee cover paid in a week, as member id pairs, read straight from the event log.
+function coverEdgesFromLog(snapshot, week) {
+  const entry = snapshot.actual.timeline.find((t) => t.week === week)
+  return (entry?.events ?? [])
+    .filter((e) => e.channel === 'guarantee')
+    .map((e) => edgeKey(e.from_id, e.to_id))
+}
+
+// Order independent key, so an edge stored m010 to m011 matches cover paid m011 to m010.
+export function edgeKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`
+}
+
 // The R chip always names its kind. R live exists only once the kendra has an index case
 // (null before that), so until then the chip shows R potential, as CLAUDE.md specifies.
 export function rChipText(snapshot, kendraId, week) {
