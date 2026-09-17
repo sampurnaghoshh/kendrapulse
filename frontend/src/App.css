@@ -93,11 +93,28 @@ body {
 
 .private-tag {
   align-self: center;
-  padding: 3px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
   font-size: 12px;
+  cursor: default;
+  user-select: none;
+}
+
+.lock {
+  width: 10px;
+  height: 12px;
+}
+
+.lock-shackle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.lock-body {
+  fill: currentColor;
 }
 
 .graph-pane {
@@ -213,9 +230,11 @@ body {
 }
 
 .node-ring {
+  /* Thick and set off from the node by a gap, so it reads by shape as well as colour. */
   fill: none;
-  stroke: var(--ink);
-  stroke-width: 2.5;
+  stroke: var(--amber);
+  stroke-opacity: 0.75;
+  stroke-width: 3.5;
 }
 
 /* The halo (stroke painted under the fill) keeps names readable where edges cross them. */
@@ -282,7 +301,11 @@ body {
 }
 
 .swatch.ring {
-  border: 2px solid var(--ink);
+  /* A small node, a gap, then the ring, matching the mark on the graph. */
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(217, 164, 65, 0.75);
+  background: radial-gradient(circle, var(--faint) 0 3.5px, transparent 4px);
 }
 
 .pulse-sample {
@@ -354,7 +377,7 @@ body {
   }
 
   .graph {
-    aspect-ratio: 940 / 880;
+    aspect-ratio: 1000 / 925;
     flex: none;
   }
 
@@ -648,7 +671,7 @@ body {
 }
 
 .fix-heading {
-  margin: 4px 2px 8px;
+  margin: 22px 2px 8px;
   font-size: 15px;
   color: var(--muted);
 }
@@ -1033,6 +1056,9 @@ body {
   padding-left: 0;
   text-align: left;
   font-weight: 400;
+  /* The row names may wrap ("All flagged / members"); the counts never do. */
+  white-space: normal;
+  width: 34%;
 }
 
 .validation-table thead th {
@@ -1061,4 +1087,26 @@ body {
   margin: 4px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+/* Name halos match whatever is behind the graph, so edges never show through the text. */
+.graph-pane.is-whatif .node-name {
+  stroke: #eef1f4;
+}
+
+.rupee-words {
+  display: block;
+  max-width: 240px;
+  margin-left: auto;
+}
+
+.rupee-words > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .rupee-words {
+    display: inline;
+    margin-left: 0;
+  }
 }

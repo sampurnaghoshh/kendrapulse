@@ -1,8 +1,10 @@
+// On the last week the button says Replay, because pressing it starts again from week 1.
 export default function WeekSlider({ week, weeks, playing, onWeek, onTogglePlay }) {
+  const label = playing ? 'Pause' : week >= weeks ? 'Replay' : 'Play'
   return (
     <div className="week-slider">
-      <button className="play" onClick={onTogglePlay} aria-label={playing ? 'Pause' : 'Play'}>
-        {playing ? 'Pause' : 'Play'}
+      <button className="play" onClick={onTogglePlay} aria-label={label}>
+        {label}
       </button>
       <label className="week-readout" htmlFor="week-range">
         Week <strong>{week}</strong> of {weeks}

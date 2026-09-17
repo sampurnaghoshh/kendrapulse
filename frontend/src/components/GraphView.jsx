@@ -1,10 +1,24 @@
-import { edgeKey, firstName, kendraGeometry, kendraLabel, kendraViewBox, rChipText } from '../snapshot.js'
+import {
+  KENDRA_CHIP_DY,
+  KENDRA_TITLE_DY,
+  edgeKey,
+  firstName,
+  kendraGeometry,
+  kendraLabel,
+  kendraViewBox,
+  nameOffsets,
+  rChipText,
+} from '../snapshot.js'
 
 // Layout coordinates come from the backend, so every view draws members in the same place.
 // The viewBox is fixed around that layout (plus room for labels) rather than measured, so
 // nothing jumps when the week or the world changes.
-const VIEWBOX = '-470 -495 940 875'
+const VIEWBOX = '-500 -535 1000 925'
 const NODE_R = 20
+// The persistent ring sits a few units off the node so it reads as a separate mark.
+const RING_R = NODE_R + 7
+// Names start just outside the ring and the selection disc.
+const NAME_GAP = RING_R + 9
 
 // Status must not rely on colour alone: amber carries one mark, red two.
 const STATUS_MARK = { green: '', amber: '!', red: '!!' }
@@ -24,6 +38,7 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect,
   const guaranteeEdges = edges.filter((e) => e.type === 'guarantee' && inFocus(e.from_id))
   const viewBox = focusKendra ? kendraViewBox(snapshot, focusKendra) : VIEWBOX
   const label = focusKendra ? `${kendraLabel(focusKendra)} in week ${week}` : `Branch network in week ${week}`
+  const names = nameOffsets(snapshot, NAME_GAP)
 
   return (
     <svg className="graph" viewBox={viewBox} role="img" aria-label={label}>
@@ -61,10 +76,10 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect,
           .filter(({ kendraId }) => !focusKendra || kendraId === focusKendra)
           .map(({ kendraId, cx, top }) => (
             <g key={kendraId}>
-              <text className="kendra-label" x={cx} y={top - 66} textAnchor="middle">
+              <text className="kendra-label" x={cx} y={top + KENDRA_TITLE_DY} textAnchor="middle">
                 {kendraLabel(kendraId)}
               </text>
-              <RChip x={cx} y={top - 44} text={rChipText(snapshot, kendraId, week, world)} />
+              <RChip x={cx} y={top + KENDRA_CHIP_DY} text={rChipText(snapshot, kendraId, week, world)} />
             </g>
           ))}
       </g>
@@ -90,13 +105,13 @@ export default function GraphView({ snapshot, world, week, selectedId, onSelect,
               {selected && <circle className="node-select" r={NODE_R + 13} />}
               {/* Keyed by week so the flash plays again if the slider comes back to it. */}
               {m.id === flashId && <circle key={`flash@${week}`} className="node-flash" r={NODE_R + 13} />}
-              {ringed && <circle className="node-ring" r={NODE_R + 6} />}
+              {ringed && <circle className="node-ring" r={RING_R} />}
               <circle className="node-body" r={NODE_R} />
               <text className="node-mark" y={6} textAnchor="middle">
                 {STATUS_MARK[status]}
               </text>
               {isProtected && <ShieldMark x={NODE_R + 3} y={10} />}
-              <text className="node-name" y={NODE_R + 21} textAnchor="middle">
+              <text className="node-name" x={names[m.id].x} y={names[m.id].y} textAnchor={names[m.id].anchor}>
                 {firstName(m)}
               </text>
             </g>

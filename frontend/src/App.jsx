@@ -177,7 +177,14 @@ export default function App() {
         >
           How we tested it
         </button>
-        <span className="private-tag">Visible to the loan officer only</span>
+        {/* A statement, not a control: plain text with a drawn lock, nothing to click or tab to. */}
+        <span className="private-tag">
+          <svg className="lock" viewBox="0 0 12 14" aria-hidden="true">
+            <path className="lock-shackle" d="M3.5 6 V4 a2.5 2.5 0 0 1 5 0 V6" />
+            <rect className="lock-body" x="1.5" y="6" width="9" height="7" rx="1.5" />
+          </svg>
+          Visible to the loan officer only
+        </span>
       </header>
 
       {splitView ? (
@@ -237,7 +244,9 @@ export default function App() {
         <aside className="side-panel" ref={panelRef}>
           {validationOpen && <ValidationView snapshot={snapshot} onClose={() => setValidationOpen(false)} />}
           <OfficerNote snapshot={snapshot} week={week} />
-          {cards.length === 0 && <p className="panel-hint">Click a member to see why she is flagged.</p>}
+          {cards.length === 0 && !(fixOpen && week >= snapshot.smallest_fix.decision_week) && (
+            <p className="panel-hint">Click a member to see why she is flagged.</p>
+          )}
           {cards.map((card) => (
             <ExplanationCard
               key={card.id}
@@ -295,14 +304,20 @@ function RupeeLine({ snapshot, reality, world, week }) {
         <span className="compare">
           <strong>{here}</strong> with it
         </span>
-        <span>loans on members flagged at some point so far</span>
+        <span className="rupee-words">
+          <span>loans on members</span> <span>flagged at some point so far</span>
+        </span>
       </p>
     )
   }
   return (
     <p className="rupee-line" aria-live="polite">
       <strong>{here}</strong>
-      <span>of loans on members flagged at some point so far{world.alternate ? ' in this world' : ''}</span>
+      {/* Two unbreakable phrases, so the line wraps between them and "so far" never ends up
+          alone on a line. */}
+      <span className="rupee-words">
+        <span>of loans on members</span> <span>flagged at some point so far{world.alternate ? ' in this world' : ''}</span>
+      </span>
     </p>
   )
 }

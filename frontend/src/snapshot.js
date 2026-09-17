@@ -73,17 +73,46 @@ export function kendraGeometry(snapshot) {
   })
 }
 
+// Vertical offsets above a kendra's top node, shared by the graph and the viewBoxes below.
+// High enough that the top member's name, which sits above her node, clears the R chip.
+export const KENDRA_TITLE_DY = -104
+export const KENDRA_CHIP_DY = -80
+
 // A viewBox around one kendra, for the zoomed split screen panels. Padding leaves room for
-// the kendra label and R chip above (drawn at top minus 66) and first names below the nodes.
+// the kendra title and R chip above, and for first names placed outside the pentagon.
 export function kendraViewBox(snapshot, kendraId) {
   const points = snapshot.scenario.kendras[kendraId].map((id) => snapshot.scenario.layout[id])
   const xs = points.map((p) => p[0])
   const ys = points.map((p) => p[1])
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2
-  const halfWidth = Math.max(170, (Math.max(...xs) - Math.min(...xs)) / 2 + 90)
-  const top = Math.min(...ys) - 100
-  const bottom = Math.max(...ys) + 52
+  const halfWidth = Math.max(200, (Math.max(...xs) - Math.min(...xs)) / 2 + 130)
+  const top = Math.min(...ys) + KENDRA_TITLE_DY - 30
+  const bottom = Math.max(...ys) + 62
   return `${cx - halfWidth} ${top} ${2 * halfWidth} ${bottom - top}`
+}
+
+// Where each first name goes, relative to its node: pushed radially outward from the centre
+// of her kendra, so names sit outside the pentagon and edges inside it never cross them.
+// Mostly vertical directions put the name above or below the node, centred; mostly
+// horizontal ones put it beside the node, anchored away from the cluster.
+export function nameOffsets(snapshot, gap) {
+  const { layout, kendras } = snapshot.scenario
+  const out = {}
+  for (const ids of Object.values(kendras)) {
+    const cx = ids.reduce((sum, id) => sum + layout[id][0], 0) / ids.length
+    const cy = ids.reduce((sum, id) => sum + layout[id][1], 0) / ids.length
+    for (const id of ids) {
+      const dx = layout[id][0] - cx
+      const dy = layout[id][1] - cy
+      const len = Math.hypot(dx, dy) || 1
+      const ux = dx / len
+      const uy = dy / len
+      if (uy < -0.5) out[id] = { x: 0, y: -gap, anchor: 'middle' }
+      else if (uy > 0.5) out[id] = { x: ux * gap * 0.4, y: gap + 13, anchor: 'middle' }
+      else out[id] = { x: ux * gap, y: uy * gap + 6, anchor: ux > 0 ? 'start' : 'end' }
+    }
+  }
+  return out
 }
 
 // A "world" is what the graph draws: weekly member states plus the persistent ring.
