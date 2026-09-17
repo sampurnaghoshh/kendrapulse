@@ -1,5 +1,7 @@
 # Strategy notes are not part of the build contract and stay out of the repo.
 docs/STRATEGY.md
+# Working notes; the durable reasoning lives in docs/DESIGN_NOTES.md.
+NEXT.md
 
 # Secrets (LLM_API_KEY lives here from Phase 7 on).
 .env
