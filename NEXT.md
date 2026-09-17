@@ -382,7 +382,7 @@ marginality. If none of the three works, say so in the video rather than moving 
 
 ## Next
 
-- **Next, in order**: `scripts/run_validation.py --n 500` (about 55
+- **Next, in order**: ~~`scripts/run_validation.py --n 500`~~ (done, see Validation fairness RESULT) (about 55
   seconds at the measured 0.11s per scenario), then `validation/reality_check.py` (more lenders
   means more overdue, a weak monsoon hits a shared income source together, low overdue in
   normal conditions) folded into the same report.
@@ -432,6 +432,54 @@ marginality. If none of the three works, say so in the video rather than moving 
 
 The n=100 numbers above are recorded honestly but they are NOT yet a fair comparison, and this
 section is the fix. Read it before touching the validation again.
+
+### RESULT, n=500, run once (method commit 1913431)
+
+469 scenarios scored, 1901 observed flagged members, 105 s. Constants were not touched after the
+run: own share 0.5, sole share 0.5, no signal below 0.01 excess. Counts are correct of total.
+
+| subset | engine, threshold | engine, anchored | baseline |
+| --- | ---: | ---: | ---: |
+| **same_subset** (1382) | 1248 of 1382 | 1248 of 1382 | **1269 of 1382** |
+| INDEX | 775 of 777 | 775 of 777 | 777 of 777 |
+| TRANSMITTED | 388 of 513 | 388 of 513 | **420 of 513** |
+| INDEPENDENT | **85 of 92** | **85 of 92** | 72 of 92 |
+| **unexplained_subset** (519) | 0 of 519 | 361 of 519 | **420 of 519** |
+| INDEX | 0 of 3 | 3 of 3 | 3 of 3 |
+| TRANSMITTED | 0 of 477 | 326 of 477 | **388 of 477** |
+| INDEPENDENT | 0 of 39 | **32 of 39** | 29 of 39 |
+| **all_observed** (1901) | 1248 of 1901 | 1609 of 1901 | **1689 of 1901** |
+| INDEX | 775 of 780 | 778 of 780 | 780 of 780 |
+| TRANSMITTED | 388 of 990 | 714 of 990 | **808 of 990** |
+| INDEPENDENT | 85 of 131 | **117 of 131** | 101 of 131 |
+
+- unexplained (threshold): 519. no_signal (anchored): 35. own_share clipped: 0 of 519 anchored
+  members (0 below 0, 0 above 1). The clip is kept as a guard, but it never fired here.
+- **Pre registered prediction HELD**: baseline 1269 of 1382 (91.8%) on the same subset, above its
+  1689 of 1901 (88.8%) overall.
+- **And the consequence the plan named also happened: the baseline is AT OR ABOVE the engine on
+  the same subset** (1269 against 1248). The simulation has no measured overall advantage there.
+
+What that means, plainly:
+
+1. **The engine loses to the spreadsheet rule overall, in both modes.** Same subset by 21
+   members, all observed by 80 (anchored) and 441 (threshold). The earlier "90.6 against 86.8"
+   was the easier subset effect and must not be quoted.
+2. **TRANSMITTED goes to the baseline everywhere**: 420 against 388 on the same members, 388
+   against 326 on the unexplained ones. In this model guarantee cover is the main channel and
+   the event log records it, so "blame whoever she covered most" is a very good rule.
+3. **INDEPENDENT goes to the engine everywhere, and now on real counts**: 85 of 92 against 72 of
+   92 on the same members, 32 of 39 against 29 of 39 on the unexplained ones, 117 of 131 against
+   101 of 131 overall (anchored). That is 16 more members correctly told "this is your own
+   income, not contagion". It is the one measured advantage, it is small in count, and it is
+   the case that changes what the officer does.
+4. **Anchoring fixed coverage, not accuracy.** It explained 484 of the 519 unexplained members
+   (35 honest no_signal) and got 361 right, but the baseline got 420 of those same 519.
+5. INDEX is solved by both and earns no credit.
+
+Per item 4 below, the video leads with the MECHANISM (counterfactual, two worlds, explanation
+path, smallest fix) and the INDEPENDENT case, and says out loud that on transmitted cases a simple
+rule from the event log does as well or better. No benchmark win is claimed.
 
 ### 1. accuracy_when_explained is measured on an easier subset
 
@@ -522,7 +570,7 @@ either.
 ```
 cd backend && .venv/Scripts/python.exe -m pytest
 cd backend && .venv/Scripts/python.exe scripts/demo_story.py
-cd backend && .venv/Scripts/python.exe scripts/run_validation.py --n 100
+cd backend && .venv/Scripts/python.exe scripts/run_validation.py --n 500
 cd backend && .venv/Scripts/python.exe scripts/tune_demo.py --with-overrides
 ```
 

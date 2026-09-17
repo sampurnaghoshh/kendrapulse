@@ -1,11 +1,11 @@
 {
   "what_this_is": "A test of the attribution LOGIC, not of accuracy on real borrowers. It asks whether the procedure recovers a planted cause when it is denied the true parameters, the true incomes and the true dice. No number here is a claim about any real household.",
   "config": {
-    "n_scenarios": 100,
-    "scenarios_scored": 93,
-    "scenarios_skipped_nobody_flagged": 7,
+    "n_scenarios": 500,
+    "scenarios_scored": 469,
+    "scenarios_skipped_nobody_flagged": 31,
     "base_seed": 0,
-    "generator_seeds": "0 to 99",
+    "generator_seeds": "0 to 499",
     "engine_seed_offset": 10000,
     "param_noise": [
       0.8,
@@ -23,199 +23,487 @@
     ],
     "kendras": 5,
     "members_per_kendra": 5,
-    "git_commit": "a6fcf61e15ca5ad70363a5d512b8a633f93c9e3b",
+    "git_commit": "191343185500e4822259f0a9fef67b1684277ca2",
     "shock_count_mix": {
-      "1": 19,
-      "2": 32,
-      "3": 42
+      "1": 114,
+      "2": 176,
+      "3": 179
     },
-    "scenarios_with_near_simultaneous_shocks": 61
+    "scenarios_with_near_simultaneous_shocks": 298
   },
   "totals": {
-    "observed_flagged_members": 408,
+    "observed_flagged_members": 1901,
     "engine": {
       "counts": {
-        "correct": 269,
-        "wrong_source": 15,
-        "wrong_label": 13,
-        "unexplained": 111
+        "correct": 1248,
+        "wrong_source": 65,
+        "wrong_label": 69,
+        "unexplained": 519
       },
-      "accuracy_when_explained": 0.9057239057239057,
-      "overall_accuracy": 0.6593137254901961,
-      "n_explained": 297,
-      "n_observed": 408
+      "accuracy_when_explained": 0.9030390738060782,
+      "overall_accuracy": 0.6564965807469753,
+      "n_explained": 1382,
+      "n_observed": 1901
     },
     "baseline": {
       "counts": {
-        "correct": 354,
-        "wrong_source": 17,
-        "wrong_label": 37,
+        "correct": 1689,
+        "wrong_source": 76,
+        "wrong_label": 136,
         "unexplained": 0
       },
-      "accuracy_when_explained": 0.8676470588235294,
-      "overall_accuracy": 0.8676470588235294,
-      "n_explained": 408,
-      "n_observed": 408
+      "accuracy_when_explained": 0.8884797475013151,
+      "overall_accuracy": 0.8884797475013151,
+      "n_explained": 1901,
+      "n_observed": 1901
     }
   },
   "per_true_label": {
     "engine": {
       "INDEX": {
-        "n": 158,
+        "n": 780,
         "counts": {
-          "correct": 157,
-          "wrong_source": 0,
-          "wrong_label": 0,
-          "unexplained": 1
-        },
-        "accuracy_when_explained": 1.0,
-        "overall_accuracy": 0.9936708860759493,
-        "n_explained": 157,
-        "n_observed": 158
-      },
-      "TRANSMITTED": {
-        "n": 227,
-        "counts": {
-          "correct": 96,
-          "wrong_source": 15,
-          "wrong_label": 11,
-          "unexplained": 105
-        },
-        "accuracy_when_explained": 0.7868852459016393,
-        "overall_accuracy": 0.42290748898678415,
-        "n_explained": 122,
-        "n_observed": 227
-      },
-      "INDEPENDENT": {
-        "n": 23,
-        "counts": {
-          "correct": 16,
+          "correct": 775,
           "wrong_source": 0,
           "wrong_label": 2,
-          "unexplained": 5
+          "unexplained": 3
         },
-        "accuracy_when_explained": 0.8888888888888888,
-        "overall_accuracy": 0.6956521739130435,
-        "n_explained": 18,
-        "n_observed": 23
+        "accuracy_when_explained": 0.9974259974259975,
+        "overall_accuracy": 0.9935897435897436,
+        "n_explained": 777,
+        "n_observed": 780
+      },
+      "TRANSMITTED": {
+        "n": 990,
+        "counts": {
+          "correct": 388,
+          "wrong_source": 65,
+          "wrong_label": 60,
+          "unexplained": 477
+        },
+        "accuracy_when_explained": 0.7563352826510721,
+        "overall_accuracy": 0.39191919191919194,
+        "n_explained": 513,
+        "n_observed": 990
+      },
+      "INDEPENDENT": {
+        "n": 131,
+        "counts": {
+          "correct": 85,
+          "wrong_source": 0,
+          "wrong_label": 7,
+          "unexplained": 39
+        },
+        "accuracy_when_explained": 0.9239130434782609,
+        "overall_accuracy": 0.648854961832061,
+        "n_explained": 92,
+        "n_observed": 131
       }
     },
     "baseline": {
       "INDEX": {
-        "n": 158,
+        "n": 780,
         "counts": {
-          "correct": 158,
+          "correct": 780,
           "wrong_source": 0,
           "wrong_label": 0,
           "unexplained": 0
         },
         "accuracy_when_explained": 1.0,
         "overall_accuracy": 1.0,
-        "n_explained": 158,
-        "n_observed": 158
+        "n_explained": 780,
+        "n_observed": 780
       },
       "TRANSMITTED": {
-        "n": 227,
+        "n": 990,
         "counts": {
-          "correct": 181,
-          "wrong_source": 17,
-          "wrong_label": 29,
+          "correct": 808,
+          "wrong_source": 76,
+          "wrong_label": 106,
           "unexplained": 0
         },
-        "accuracy_when_explained": 0.7973568281938326,
-        "overall_accuracy": 0.7973568281938326,
-        "n_explained": 227,
-        "n_observed": 227
+        "accuracy_when_explained": 0.8161616161616162,
+        "overall_accuracy": 0.8161616161616162,
+        "n_explained": 990,
+        "n_observed": 990
       },
       "INDEPENDENT": {
-        "n": 23,
+        "n": 131,
         "counts": {
-          "correct": 15,
+          "correct": 101,
           "wrong_source": 0,
-          "wrong_label": 8,
+          "wrong_label": 30,
           "unexplained": 0
         },
-        "accuracy_when_explained": 0.6521739130434783,
-        "overall_accuracy": 0.6521739130434783,
-        "n_explained": 23,
-        "n_observed": 23
+        "accuracy_when_explained": 0.7709923664122137,
+        "overall_accuracy": 0.7709923664122137,
+        "n_explained": 131,
+        "n_observed": 131
       }
+    }
+  },
+  "fairness": {
+    "constants": {
+      "anchored_own_share": 0.5,
+      "anchored_sole_share": 0.5,
+      "anchored_min_excess": 0.01,
+      "fixed_before_the_run": true
+    },
+    "same_subset": {
+      "n": 1382,
+      "engine_threshold": {
+        "correct": 1248,
+        "of": 1382,
+        "rate": 0.9030390738060782,
+        "outcomes": {
+          "correct": 1248,
+          "wrong_source": 65,
+          "wrong_label": 69,
+          "unexplained": 0
+        }
+      },
+      "engine_anchored": {
+        "correct": 1248,
+        "of": 1382,
+        "rate": 0.9030390738060782,
+        "outcomes": {
+          "correct": 1248,
+          "wrong_source": 65,
+          "wrong_label": 69,
+          "no_signal": 0
+        }
+      },
+      "baseline": {
+        "correct": 1269,
+        "of": 1382,
+        "rate": 0.9182344428364689,
+        "outcomes": {
+          "correct": 1269,
+          "wrong_source": 40,
+          "wrong_label": 73,
+          "unexplained": 0
+        }
+      },
+      "per_true_label": {
+        "INDEX": {
+          "engine_threshold": {
+            "correct": 775,
+            "of": 777,
+            "rate": 0.9974259974259975
+          },
+          "engine_anchored": {
+            "correct": 775,
+            "of": 777,
+            "rate": 0.9974259974259975
+          },
+          "baseline": {
+            "correct": 777,
+            "of": 777,
+            "rate": 1.0
+          }
+        },
+        "TRANSMITTED": {
+          "engine_threshold": {
+            "correct": 388,
+            "of": 513,
+            "rate": 0.7563352826510721
+          },
+          "engine_anchored": {
+            "correct": 388,
+            "of": 513,
+            "rate": 0.7563352826510721
+          },
+          "baseline": {
+            "correct": 420,
+            "of": 513,
+            "rate": 0.8187134502923976
+          }
+        },
+        "INDEPENDENT": {
+          "engine_threshold": {
+            "correct": 85,
+            "of": 92,
+            "rate": 0.9239130434782609
+          },
+          "engine_anchored": {
+            "correct": 85,
+            "of": 92,
+            "rate": 0.9239130434782609
+          },
+          "baseline": {
+            "correct": 72,
+            "of": 92,
+            "rate": 0.782608695652174
+          }
+        }
+      }
+    },
+    "unexplained_subset": {
+      "n": 519,
+      "engine_threshold": {
+        "correct": 0,
+        "of": 519,
+        "rate": 0.0,
+        "outcomes": {
+          "correct": 0,
+          "wrong_source": 0,
+          "wrong_label": 0,
+          "unexplained": 519
+        }
+      },
+      "engine_anchored": {
+        "correct": 361,
+        "of": 519,
+        "rate": 0.6955684007707129,
+        "outcomes": {
+          "correct": 361,
+          "wrong_source": 82,
+          "wrong_label": 41,
+          "no_signal": 35
+        }
+      },
+      "baseline": {
+        "correct": 420,
+        "of": 519,
+        "rate": 0.8092485549132948,
+        "outcomes": {
+          "correct": 420,
+          "wrong_source": 36,
+          "wrong_label": 63,
+          "unexplained": 0
+        }
+      },
+      "per_true_label": {
+        "INDEX": {
+          "engine_threshold": {
+            "correct": 0,
+            "of": 3,
+            "rate": 0.0
+          },
+          "engine_anchored": {
+            "correct": 3,
+            "of": 3,
+            "rate": 1.0
+          },
+          "baseline": {
+            "correct": 3,
+            "of": 3,
+            "rate": 1.0
+          }
+        },
+        "TRANSMITTED": {
+          "engine_threshold": {
+            "correct": 0,
+            "of": 477,
+            "rate": 0.0
+          },
+          "engine_anchored": {
+            "correct": 326,
+            "of": 477,
+            "rate": 0.6834381551362684
+          },
+          "baseline": {
+            "correct": 388,
+            "of": 477,
+            "rate": 0.8134171907756813
+          }
+        },
+        "INDEPENDENT": {
+          "engine_threshold": {
+            "correct": 0,
+            "of": 39,
+            "rate": 0.0
+          },
+          "engine_anchored": {
+            "correct": 32,
+            "of": 39,
+            "rate": 0.8205128205128205
+          },
+          "baseline": {
+            "correct": 29,
+            "of": 39,
+            "rate": 0.7435897435897436
+          }
+        }
+      }
+    },
+    "all_observed": {
+      "n": 1901,
+      "engine_threshold": {
+        "correct": 1248,
+        "of": 1901,
+        "rate": 0.6564965807469753,
+        "outcomes": {
+          "correct": 1248,
+          "wrong_source": 65,
+          "wrong_label": 69,
+          "unexplained": 519
+        }
+      },
+      "engine_anchored": {
+        "correct": 1609,
+        "of": 1901,
+        "rate": 0.846396633350868,
+        "outcomes": {
+          "correct": 1609,
+          "wrong_source": 147,
+          "wrong_label": 110,
+          "no_signal": 35
+        }
+      },
+      "baseline": {
+        "correct": 1689,
+        "of": 1901,
+        "rate": 0.8884797475013151,
+        "outcomes": {
+          "correct": 1689,
+          "wrong_source": 76,
+          "wrong_label": 136,
+          "unexplained": 0
+        }
+      },
+      "per_true_label": {
+        "INDEX": {
+          "engine_threshold": {
+            "correct": 775,
+            "of": 780,
+            "rate": 0.9935897435897436
+          },
+          "engine_anchored": {
+            "correct": 778,
+            "of": 780,
+            "rate": 0.9974358974358974
+          },
+          "baseline": {
+            "correct": 780,
+            "of": 780,
+            "rate": 1.0
+          }
+        },
+        "TRANSMITTED": {
+          "engine_threshold": {
+            "correct": 388,
+            "of": 990,
+            "rate": 0.39191919191919194
+          },
+          "engine_anchored": {
+            "correct": 714,
+            "of": 990,
+            "rate": 0.7212121212121212
+          },
+          "baseline": {
+            "correct": 808,
+            "of": 990,
+            "rate": 0.8161616161616162
+          }
+        },
+        "INDEPENDENT": {
+          "engine_threshold": {
+            "correct": 85,
+            "of": 131,
+            "rate": 0.648854961832061
+          },
+          "engine_anchored": {
+            "correct": 117,
+            "of": 131,
+            "rate": 0.8931297709923665
+          },
+          "baseline": {
+            "correct": 101,
+            "of": 131,
+            "rate": 0.7709923664122137
+          }
+        }
+      }
+    },
+    "unexplained_threshold": 519,
+    "no_signal_anchored": 35,
+    "anchored_members": 519,
+    "own_share_clipped": 0,
+    "own_share_clipped_low": 0,
+    "own_share_clipped_high": 0,
+    "prediction": {
+      "statement": "baseline accuracy on same_subset is above baseline accuracy on all_observed",
+      "baseline_same_subset": 0.9182344428364689,
+      "baseline_all_observed": 0.8884797475013151,
+      "held": true,
+      "baseline_at_or_above_engine_on_same_subset": true
     }
   },
   "confusion_truth_by_engine": {
     "INDEX": {
-      "INDEX": 157,
-      "TRANSMITTED": 0,
-      "INDEPENDENT": 0,
-      "unexplained": 1
+      "INDEX": 775,
+      "TRANSMITTED": 1,
+      "INDEPENDENT": 1,
+      "unexplained": 3
     },
     "TRANSMITTED": {
-      "INDEX": 0,
-      "TRANSMITTED": 111,
-      "INDEPENDENT": 11,
-      "unexplained": 105
+      "INDEX": 3,
+      "TRANSMITTED": 453,
+      "INDEPENDENT": 57,
+      "unexplained": 477
     },
     "INDEPENDENT": {
       "INDEX": 0,
-      "TRANSMITTED": 2,
-      "INDEPENDENT": 16,
-      "unexplained": 5
+      "TRANSMITTED": 7,
+      "INDEPENDENT": 85,
+      "unexplained": 39
     }
   },
   "hard_cases": {
     "definition": "scenarios where two or more shocks started within 2 weeks of each other",
-    "n_members": 309,
+    "n_members": 1395,
     "engine": {
       "counts": {
-        "correct": 206,
-        "wrong_source": 12,
-        "wrong_label": 11,
-        "unexplained": 80
+        "correct": 912,
+        "wrong_source": 55,
+        "wrong_label": 45,
+        "unexplained": 383
       },
-      "accuracy_when_explained": 0.8995633187772926,
-      "overall_accuracy": 0.6666666666666666,
-      "n_explained": 229,
-      "n_observed": 309
+      "accuracy_when_explained": 0.9011857707509882,
+      "overall_accuracy": 0.6537634408602151,
+      "n_explained": 1012,
+      "n_observed": 1395
     },
     "baseline": {
       "counts": {
-        "correct": 271,
-        "wrong_source": 11,
-        "wrong_label": 27,
+        "correct": 1236,
+        "wrong_source": 60,
+        "wrong_label": 99,
         "unexplained": 0
       },
-      "accuracy_when_explained": 0.8770226537216829,
-      "overall_accuracy": 0.8770226537216829,
-      "n_explained": 309,
-      "n_observed": 309
+      "accuracy_when_explained": 0.886021505376344,
+      "overall_accuracy": 0.886021505376344,
+      "n_explained": 1395,
+      "n_observed": 1395
     }
   },
   "clean_cases": {
     "definition": "every other scenario",
-    "n_members": 99,
+    "n_members": 506,
     "engine": {
       "counts": {
-        "correct": 63,
-        "wrong_source": 3,
-        "wrong_label": 2,
-        "unexplained": 31
+        "correct": 336,
+        "wrong_source": 10,
+        "wrong_label": 24,
+        "unexplained": 136
       },
-      "accuracy_when_explained": 0.9264705882352942,
-      "overall_accuracy": 0.6363636363636364,
-      "n_explained": 68,
-      "n_observed": 99
+      "accuracy_when_explained": 0.9081081081081082,
+      "overall_accuracy": 0.6640316205533597,
+      "n_explained": 370,
+      "n_observed": 506
     },
     "baseline": {
       "counts": {
-        "correct": 83,
-        "wrong_source": 6,
-        "wrong_label": 10,
+        "correct": 453,
+        "wrong_source": 16,
+        "wrong_label": 37,
         "unexplained": 0
       },
-      "accuracy_when_explained": 0.8383838383838383,
-      "overall_accuracy": 0.8383838383838383,
-      "n_explained": 99,
-      "n_observed": 99
+      "accuracy_when_explained": 0.8952569169960475,
+      "overall_accuracy": 0.8952569169960475,
+      "n_explained": 506,
+      "n_observed": 506
     }
   },
   "failure_examples": {
